@@ -9,6 +9,8 @@ TESTDBSRVYML=../ohdsi-omop-initiated/docker-compose.yml
 TESTDBDATADIR=../omop-test-data/
 ## DB params
 DBPARAMS=--host=localhost --port=8432 --user=postgres --password=yourpassword --database=ohdsi
+## CQL params
+CQLPARAMS=repl --omop-version OMOP_CDM_V54 -I cql
 
 # CQL on OMOP implementation
 CQLONOMOPJAR=../cql-on-omop/target/cql-on-omop-1.0-SNAPSHOT.jar
@@ -25,4 +27,4 @@ test-server-down:
 
 .PHONEY:
 run-cql-on-omop:
-	${JAVA} -jar ${CQLONOMOPJAR} ${DBPARAMS}
+	${JAVA} -jar ${CQLONOMOPJAR} ${CQLPARAMS} ${DBPARAMS}

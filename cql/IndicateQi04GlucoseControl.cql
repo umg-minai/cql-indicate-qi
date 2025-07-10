@@ -1,36 +1,71 @@
-// Name     04 - glucose control
+// Name     04 - Glucose Control
 // Version  1.0
 //
-// Source
-//  https://semicyuc.org/wp-content/uploads/2018/10/2017_qualityindicators_eng.pdf
-// Description
-// SEMICYUC indicator 55
-//  Indicator       MAINTAINING APPROPRIATE BLOOD GLUCOSE LEVELS
-//  Dimension       Effectiveness, safety
-//  Justification   Hyperglycemia in critical patients has been associated with
-//      increased infectious complications, morbidity, and mortality. However,
-//      strict glucose control with perfused insulin to maintain levels between
-//      80 and 110 mg/dL has had a contradictory effect on mortality due to
-//      a high incidence of severe hypoglycemia. Current guidelines recommend
-//      aiming to maintain glucose below 150 mg/dl with insulin, avoiding
-//      strict glucose- control protocols aiming for (80-110 mg/dL).
-//      Continuous insulin perfusion protocols should avoid variability in
-//      glucose levels.
-//  Formula
-//      (no of patients with glucose > 150 mg/dL treated with insulin) /
-//          (no of patients with glucose > 150 mg/dL)
-//  Explanation of terms
-//      Indication for insulin treatment: all critical patients with
-//      glucose > 150 mg/dl in 2 consecutive determinations.
-//  Population      All patients admitted to the intensive care unit during
-//      the period reviewed.
-//  Standard        80%
+// Description:
+// Control of appropriate glucose levels
+//
+// Numerator:
+//  (All ICU patients) - (all patients with <= 10 mmol/l glucose )
+//  (includes all patients with glucose > 10 mmol/l and all patients without
+//  any glucose measurement)
+//
+// Denominator:
+//  All patients admitted to the intensive care unit during
+//  the period reviewed.
 
 library "IndicateQi04GlucoseControl" version '1.0.0'
 
 using OMOP version 'v5.4'
 
-include IndicateQiElements called E
+include OMOPHelpers
+include IndicateQiElements called elm
 
-define GlucoseLevel:
-    [Measurement: E."Glucose"]
+// TODO: @sgibb, use the correct Glc OMOP Concept ID, use the Horowitz for testing
+// b/c there are not any Glc measurements in the test db
+code "Glucose": '3029943' from elm.OMOPSV   // Horowitz
+parameter "High Glucose Level" default 200.0 'mm[Hg]'
+parameter "Time between two consecutive High Glucose Levels" default 4 hours
+
+// code "Glucose": '3020491' from OMOPSV    // Glucose [Moles/volume] in Blood
+//parameter "High Glucose Level" default 10.0 'mmol/l'
+// or
+// 3000483
+
+context Patient
+
+define "Visits with High Glucose Measurements":
+  from
+    elm."Intensive Care Visits in Review Period" icv,
+    "High Glucose Measurements" hgm
+    where hgm.measurementDatetime during
+        Interval[icv.visitStartDatetime, icv.visitEndDatetime]
+    return icv
+
+define "Consecutive High Glucose Measurements":
+  from
+    "High Glucose Measurements" hgm1,
+    "High Glucose Measurements" hgm2
+  where hgm2.measurementDatetime after hgm1.measurementDatetime
+    and hgm2.measurementDatetime before hgm1.measurementDatetime +
+      "Time between two consecutive High Glucose Levels"
+  return hgm1
+
+define "High Glucose Measurements":
+  elm."Measurements in Review Period" m
+    where m.measurementConcept ~ "Glucose"
+      and OMOPHelpers.ToQuantity(m) > "High Glucose Level"
+    sort by measurementDatetime
+
+// TODO: @sgibb, due to "context Patient" and ",focus [Person]" this counts
+// patient-wise (just 0 or 1) instead of ICU wide
+define Denominator:
+  Count(elm."Intensive Care Visits in Review Period") -
+  Count("Visits with High Glucose Measurements")
+
+define Numerator:
+  Count(elm."Intensive Care Visits in Review Period")
+
+define QI:
+  Numerator / Denominator
+
+// vim: filetype=cql

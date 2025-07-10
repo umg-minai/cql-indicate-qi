@@ -7,3 +7,18 @@ This repository contains [CQL](https://cql.hl7.org) representations of the quali
 
 ## Usage
 
+Run the test server:
+
+```bash
+make test-server-up
+```
+
+Run CQL-on-OMOP REPL:
+
+```bash
+make run-cql-on-omop
+```
+
+## References
+
+- [CQL Author Guide](https://cql.hl7.org/02-authorsguide.html)

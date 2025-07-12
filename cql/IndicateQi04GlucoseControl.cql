@@ -22,14 +22,22 @@ include IndicateQiElements called elm
 
 // TODO: @sgibb, use the correct Glc OMOP Concept ID, use the Horowitz for testing
 // b/c there are not any Glc measurements in the test db
-code "Glucose": '3029943' from elm.OMOPSV   // Horowitz
-parameter "High Glucose Level" default 200.0 'mm[Hg]'
+// code "Glucose": '3029943' from elm.OMOPSV   // Horowitz
+parameter "High Glucose Level" default 140 'mg/dL' // 200.0 'mm[Hg]'
 parameter "Time between two consecutive High Glucose Levels" default 4 hours
 
-// code "Glucose": '3020491' from OMOPSV    // Glucose [Moles/volume] in Blood
+code "Glucose": '3020491' from elm.OMOPSV    // Glucose [Moles/volume] in Blood
 //parameter "High Glucose Level" default 10.0 'mmol/l'
 // or
 // 3000483
+
+code "Glucose in Blood": '3000483' from elm.OMOPSV
+code "Glucose in Plasma": '3004501' from elm.OMOPSV
+
+concept "Glucose in Blood or Plasma": {
+  "Glucose in Blood",
+  "Glucose in Plasma"
+}
 
 context Patient
 
@@ -51,9 +59,10 @@ define "Consecutive High Glucose Measurements":
   return hgm1
 
 define "High Glucose Measurements":
-  elm."Measurements in Review Period" m
-    where m.measurementConcept ~ "Glucose"
-      and OMOPHelpers.ToQuantity(m) > "High Glucose Level"
+  //elm."Measurements in Review Period" m
+  [Measurement: "Glucose in Plasma"] m
+    where /*m.measurementConcept ~ "Glucose"
+      and*/ OMOPHelpers.ToQuantity(m) > "High Glucose Level"
     sort by measurementDatetime
 
 // TODO: @sgibb, due to "context Patient" and ",focus [Person]" this counts

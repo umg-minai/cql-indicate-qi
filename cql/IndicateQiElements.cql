@@ -3,6 +3,7 @@ library "IndicateQiElements" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
+include OMOPFunctions
 
 // TODO: @sgibb,: drop default value when leaving testing environment
 parameter "Review Period"
@@ -41,6 +42,9 @@ define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
              }
 
 context Patient
+
+define "Age at Start of Review Period":
+  AgeInYearsAt(date from start of "Review Period")
 
 /*
 @title: Valid visits occurrences

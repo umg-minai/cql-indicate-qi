@@ -19,6 +19,27 @@ code "IcuDischargeDate": '36659649' from OMOPSV     // Intensive care unit (ICU)
 
 code "Intensive Care": '32037' from OMOPSV
 
+code "Body Height": '607590' from OMOPSV
+
+// Gender
+code "Gender Female": '8532' from OMOPSV
+code "Gender Male":   '8507' from OMOPSV
+
+define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
+  (1) _
+    let heightPart: 0.91 * (convert Height to 'm' - 1.524 'm').value
+      return Quantity{
+               value: case
+                        when Gender ~ "Gender Female" then
+                          45.5 + heightPart
+                        when Gender ~ "Gender Female" then
+                          50 + heightPart
+                        else
+                          47.75 + heightPart
+                      end,
+               unit: 'kg'
+             }
+
 context Patient
 
 /*

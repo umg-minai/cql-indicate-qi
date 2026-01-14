@@ -28,12 +28,12 @@ code "Gender Male":   '8507' from OMOPSV
 
 define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
   (1) _
-    let heightPart: 0.91 * (convert Height to 'm' - 1.524 'm').value
+    let heightPart: 0.91 * (convert Height to 'cm' - 152.4 'cm').value
       return Quantity{
                value: case
                         when Gender ~ "Gender Female" then
                           45.5 + heightPart
-                        when Gender ~ "Gender Female" then
+                        when Gender ~ "Gender Male" then
                           50 + heightPart
                         else
                           47.75 + heightPart
@@ -45,6 +45,18 @@ context Patient
 
 define "Age at Start of Review Period":
   AgeInYearsAt(date from start of "Review Period")
+
+define "Most Recent Height Measurement":
+  First([Measurement: "Body Height"] m
+          return all m
+          sort by measurementDatetime desc)
+
+define "Ideal Body Weight":
+  if "Most Recent Height Measurement" is null then
+    null
+  else
+    "Ideal Body Weight for Height"("Most Recent Height Measurement",
+                                   Patient.genderConcept)
 
 /*
 @title: Intensive Care Visits

@@ -66,6 +66,7 @@ define "Valid Glucose Measurements":
     // Some measurements in the database lack at least of these properties
     where not m.valueAsNumber is null and not m.unitConcept is null
     return all m
+    sort by measurementDatetime
 
 // Glucose levels
 
@@ -125,41 +126,48 @@ define function "Time between Measurements At Most"(earlierMeasurement Measureme
 define function "Successful Glucose Control"(previousMeasurement Measurement,
                                              measurement         Measurement,
                                              nextMeasurement     Measurement):
-      ((previousMeasurement is null)
+      (   (previousMeasurement is null)
        or "Time between Measurements At Most"(previousMeasurement,
                                               measurement,
                                               10 hours))
-  and ((not "Is Acceptable Glucose Level"(convert measurement to Quantity))
+  and ("Is Acceptable Glucose Level"(convert measurement to Quantity)
        or (if nextMeasurement is null then
              false
            else
-             "Time between Measurements At Most"(
-               measurement,
-               nextMeasurement,
-               "Time between consecutive non-Acceptable Glucose Levels"
-             )
-             and ("Is Acceptable Glucose Level"(convert nextMeasurement to Quantity)
+                 "Time between Measurements At Most"(
+                   measurement,
+                   nextMeasurement,
+                   "Time between consecutive non-Acceptable Glucose Levels"
+                 )
+             and (   "Is Acceptable Glucose Level"(convert nextMeasurement to Quantity)
                   or "Acceptable Follow-up Glucose Level"(
                        convert measurement     to Quantity,
                        convert nextMeasurement to Quantity
                      ))))
 
-define function "Acceptable Glucose Measurements"(measurements List<Measurement>):
-  (Flatten({Tail(measurements), {null}})) m aggregate r
-    starting ({minusTwo: null, minusOne: First(measurements), results: {}}):
-    {
-      minusTwo: r.minusOne,
-      minusOne: m,
-      results:  Flatten({r.results, {"Successful Glucose Control"(
-                                       r.minusTwo as Measurement,
-                                       r.minusOne,
-                                       m as Measurement
-                                     )}})
-    }
+define function "Acceptable Glucose Measurements"(measurements List<Tuple{previous Measurement, current Measurement, next Measurement}>,
+                                                  isFirstShift Boolean):
+  // Do the first triple separately so that we can indicate that the
+  // predecessor of the first measurement does not matter if the context is the
+  // first shift of an ICU visit.
+  Flatten({
+    (1) _
+      let first: First(measurements)
+        return {
+          "Successful Glucose Control"(
+            if isFirstShift then null else first.previous,
+            first.current,
+            first.next
+          )
+        },
+    (Tail(measurements)) m
+      return all "Successful Glucose Control"(m.previous, m.current, m.next)
+  })
 
-define function "Conforming Glucose Measurements"(measurements List<Measurement>):
+define function "Conforming Glucose Measurements"(measurements List<Tuple{previous Measurement, current Measurement, next Measurement}>,
+                                                  isFirstShift Boolean):
   if Exists(measurements) then
-    AllTrue("Acceptable Glucose Measurements"(measurements).results)
+    AllTrue("Acceptable Glucose Measurements"(measurements, isFirstShift))
   else
     false
 
@@ -179,24 +187,44 @@ define function "Shifts during Visit"(visit VisitOccurrence, shiftDuration Quant
              else
                {}
 
-define Shifts:
+define "Shifts in Visits":
   (1) _
     let shiftDuration: Quantity{
                          value: (convert "Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
-      return Flatten((elm."Intensive Care Visits in Review Period") visit
-                       return all "Shifts during Visit"(visit, shiftDuration))
+      return all (elm."Intensive Care Visits in Review Period") visit
+                   return all "Shifts during Visit"(visit, shiftDuration)
 
-define function "Is Conforming Shift"(shift Interval<DateTime>):
+define function "Measurements during Shift Plus Neighbors"(shift Interval<DateTime>):
   (1) _
-    let glucoseMeasurements: ("Valid Glucose Measurements") m
-                               where (convert m to DateTime) during shift
-                               return all m
-      return "Conforming Glucose Measurements"(glucoseMeasurements)
+    let measurementsWithNeighbors: (elm."Measurements with Neighbors"("Valid Glucose Measurements")
+                                    as List<Tuple{previous Measurement, current Measurement, next Measurement}>)
+      return (measurementsWithNeighbors) m
+               where (convert m.current to DateTime) during shift
+               return all m
+
+define function "Is Conforming Shift"(shift        Interval<DateTime>,
+                                      isFirstShift Boolean):
+  (1) _
+    let shiftMeasurements: "Measurements during Shift Plus Neighbors"(shift)
+      return "Conforming Glucose Measurements"(shiftMeasurements, isFirstShift)
+
+define Shifts: Flatten("Shifts in Visits")
 
 define "Conforming Shifts":
-  (Shifts) s where "Is Conforming Shift"(s) return all s
+  Flatten(("Shifts in Visits") shiftsInVisit
+            // Handle the first shift of each ICU visit specially since the
+            // first measurement of that first shift does not have a preceding
+            // measurement.
+            return all Flatten({
+                         ({ First(shiftsInVisit) }) s
+                           where "Is Conforming Shift"(s, true)
+                           return all s,
+                         (shiftsInVisit) s
+                           where "Is Conforming Shift"(s, false)
+                           return all s
+                       }))
 
 // Quality Indicator
 
@@ -205,14 +233,14 @@ define "Is in Initial Population":
   and (elm."Age at Start of Review Period" >= 18)
 
 define Denominator:
-  Count("Conforming Shifts")
+  Count(Shifts)
 
 define Numerator:
-  Count(Shifts)
+  Count("Conforming Shifts")
 
 define QI:
   if "Is in Initial Population" then
-    Denominator / Numerator
+    Numerator / Denominator
   else
     null
 

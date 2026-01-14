@@ -122,4 +122,21 @@ elm.LimitPeriod(b, rp)
 define function LimitPeriod(tp List<Interval<DateTime>>, rp Interval<DateTime>):
     (tp) p return all p intersect (rp)
 
+define function "Measurements with Neighbors"(measurements List<Measurement>):
+  ((Flatten({Tail(measurements), {null}})) m aggregate r
+    starting ({minusTwo: null, minusOne: First(measurements), results: {}}):
+    {
+      minusTwo: r.minusOne,
+      minusOne: m,
+      results:  Flatten({
+                          r.results,
+                          {{
+                            previous: r.minusTwo,
+                            current:  r.minusOne,
+                            next:     m
+                          }}
+                        })
+    }).results
+
+
 // vim: filetype=cql

@@ -2,7 +2,7 @@
 // Version  1.0
 //
 // Description:
-// Control of appropriate glucose levels
+//  Control of appropriate glucose levels
 //
 // Numerator:
 //  (All ICU patients) - (all patients with <= 10 mmol/l glucose )
@@ -19,53 +19,204 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 include IndicateQiElements called elm
+include LocalTimeGermany called L
 
-// TODO: @sgibb, use the correct Glc OMOP Concept ID, use the Horowitz for testing
-// b/c there are not any Glc measurements in the test db
-code "Glucose": '3029943' from elm.OMOPSV   // Horowitz
-parameter "High Glucose Level" default 200.0 'mm[Hg]'
-parameter "Time between two consecutive High Glucose Levels" default 4 hours
+// Parameters for controlling the timing of shifts.  Note that the indicator is
+// specified as follows:
+//
+//   Each day is divided into 3 shifts/periods per days:
+//   - 06:00:00 to 13:59:59
+//   - 14:00:00 to 21:59:59
+//   - 22:00:00 to 05:59:59
+//
+// So there should normally be no reason to change these values.
+parameter "Shift Start within Day" Quantity default 6 hours
+parameter "Shift Duration"         Quantity default 8 'h'
 
-// code "Glucose": '3020491' from OMOPSV    // Glucose [Moles/volume] in Blood
+parameter "Low Glucose Level in mg/dL" default 140 'mg/dL'
+parameter "Low Glucose Level in mm[Hg]" default 200.0 'mm[Hg]'
+
+parameter "High Glucose Level in mg/dL" default 140 'mg/dL'
+parameter "High Glucose Level in mm[Hg]" default 200.0 'mm[Hg]'
 //parameter "High Glucose Level" default 10.0 'mmol/l'
-// or
-// 3000483
+
+parameter "Time between consecutive non-Acceptable Glucose Levels" default 2 hours
+
+// Not used: code "Glucose": '3020491' from elm.OMOPSV    // Glucose [Moles/volume] in Blood
+code "Glucose in Serum":              '3004501' from elm.OMOPSV
+code "Glucose in Blood":              '3000483' from elm.OMOPSV
+code "Glucose in Venous Blood":       '3033408' from elm.OMOPSV
+code "Glucose in Mixed Venous Blood": '1092148' from elm.OMOPSV
+code "Glucose in Capillary Blood":    '3034962' from elm.OMOPSV
+
+concept "Glucose Level": {
+  "Glucose in Serum",
+  "Glucose in Blood",
+  "Glucose in Venous Blood",
+  "Glucose in Mixed Venous Blood",
+  "Glucose in Capillary Blood"
+}
 
 context Patient
 
-define "Visits with High Glucose Measurements":
-  from
-    elm."Intensive Care Visits in Review Period" icv,
-    "High Glucose Measurements" hgm
-    where hgm.measurementDatetime during
-        Interval[icv.visitStartDatetime, icv.visitEndDatetime]
-    return icv
+// Glucose Measurements
 
-define "Consecutive High Glucose Measurements":
-  from
-    "High Glucose Measurements" hgm1,
-    "High Glucose Measurements" hgm2
-  where hgm2.measurementDatetime after hgm1.measurementDatetime
-    and hgm2.measurementDatetime before hgm1.measurementDatetime +
-      "Time between two consecutive High Glucose Levels"
-  return hgm1
+define "Valid Glucose Measurements":
+  [Measurement: "Glucose Level"] m // TODO(moringenj): restrict to review period?
+    // Some measurements in the database lack at least of these properties
+    where not m.valueAsNumber is null and not m.unitConcept is null
+    return all m
 
-define "High Glucose Measurements":
-  elm."Measurements in Review Period" m
-    where m.measurementConcept ~ "Glucose"
-      and OMOPHelpers.ToQuantity(m) > "High Glucose Level"
-    sort by measurementDatetime
+// Glucose levels
 
-// TODO: @sgibb, due to "context Patient" and ",focus [Person]" this counts
-// patient-wise (just 0 or 1) instead of ICU wide
+define function "Convert mol/L to g/L"(quantity Quantity):
+  (1) _
+    let scaled: convert quantity to 'mmol/L'
+      return Quantity{value: 18.02 * scaled.value, unit: 'mg/dL'}
+
+define function "Is High Glucose Level"(glucoseLevel Quantity):
+  case
+    when Matches(glucoseLevel.unit, '.*g/.*L') then
+      glucoseLevel > "High Glucose Level in mg/dL"
+    when Matches(glucoseLevel.unit, '.*mol/.*L') then
+      "Convert mol/L to g/L"(glucoseLevel) > "High Glucose Level in mg/dL"
+    when glucoseLevel.unit = 'mm[Hg]' then
+      glucoseLevel > "High Glucose Level in mm[Hg]"
+    else
+      Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mm[HG]" or convertible to "g/L"')
+  end
+
+define function "Is Low Glucose Level"(glucoseLevel Quantity):
+  case
+  when Matches(glucoseLevel.unit, '.*g/.*L') then
+    glucoseLevel < "Low Glucose Level in mg/dL"
+  when Matches(glucoseLevel.unit, '.*mol/.*L') then
+    "Convert mol/L to g/L"(glucoseLevel) < "Low Glucose Level in mg/dL"
+  when glucoseLevel.unit = 'mm[Hg]' then
+    glucoseLevel < "Low Glucose Level in mm[Hg]"
+  else
+    Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mm[HG]" or convertible to "g/L"')
+  end
+
+define function "Is Acceptable Glucose Level"(glucoseLevel Quantity):
+      (not "Is High Glucose Level"(glucoseLevel))
+  and (not "Is Low Glucose Level"(glucoseLevel))
+
+define function "Acceptable Follow-up Glucose Level"(firstValue  Quantity,
+                                                     secondValue Quantity):
+  "Is Acceptable Glucose Level"(secondValue)
+  /* Below acceptable range but increased by at least 20 % */
+  or (    "Is Low Glucose Level"(firstValue)
+      and "Is Low Glucose Level"(secondValue)
+      and secondValue > firstValue * 1.2)
+  /* Above acceptable range but decreased by at least 20 % */
+  or (    "Is High Glucose Level"(firstValue)
+      and "Is High Glucose Level"(secondValue)
+      and secondValue < firstValue * 0.8)
+
+define function "Time between Measurements At Most"(earlierMeasurement Measurement,
+                                                    laterMeasurement   Measurement,
+                                                    maximumTime        Quantity):
+  // TODO(moringenj): assert maximumTime is in hours
+  (difference in hours between (convert earlierMeasurement to DateTime)
+                       and     (convert laterMeasurement   to DateTime))
+  <= maximumTime.value
+
+define function "Successful Glucose Control"(previousMeasurement Measurement,
+                                             measurement         Measurement,
+                                             nextMeasurement     Measurement):
+      ((previousMeasurement is null)
+       or "Time between Measurements At Most"(previousMeasurement,
+                                              measurement,
+                                              10 hours))
+  and ((not "Is Acceptable Glucose Level"(convert measurement to Quantity))
+       or (if nextMeasurement is null then
+             false
+           else
+             "Time between Measurements At Most"(
+               measurement,
+               nextMeasurement,
+               "Time between consecutive non-Acceptable Glucose Levels"
+             )
+             and ("Is Acceptable Glucose Level"(convert nextMeasurement to Quantity)
+                  or "Acceptable Follow-up Glucose Level"(
+                       convert measurement     to Quantity,
+                       convert nextMeasurement to Quantity
+                     ))))
+
+define function "Acceptable Glucose Measurements"(measurements List<Measurement>):
+  (Flatten({Tail(measurements), {null}})) m aggregate r
+    starting ({minusTwo: null, minusOne: First(measurements), results: {}}):
+    {
+      minusTwo: r.minusOne,
+      minusOne: m,
+      results:  Flatten({r.results, {"Successful Glucose Control"(
+                                       r.minusTwo as Measurement,
+                                       r.minusOne,
+                                       m as Measurement
+                                     )}})
+    }
+
+define function "Conforming Glucose Measurements"(measurements List<Measurement>):
+  if Exists(measurements) then
+    AllTrue("Acceptable Glucose Measurements"(measurements).results)
+  else
+    false
+
+// Shifts
+
+define function "Shifts during Visit"(visit VisitOccurrence, shiftDuration Quantity):
+  (1) _
+    let periodInterval:  convert visit to Interval<DateTime>,
+        periodStartDay:  date from start of periodInterval,
+        periodEnd:       end of periodInterval,
+        firstShiftStart: L.ExpandDateToDateTime(periodStartDay) + "Shift Start within Day"
+      return if firstShiftStart before periodEnd then
+               (Expand(Interval[firstShiftStart, periodEnd], shiftDuration)) s
+                 let shift: Interval[s, s + shiftDuration)
+                   where shift included in periodInterval
+                   return all shift
+             else
+               {}
+
+define Shifts:
+  (1) _
+    let shiftDuration: Quantity{
+                         value: (convert "Shift Duration" to 's').value,
+                         unit:  'seconds'
+                       }
+      return Flatten((elm."Intensive Care Visits in Review Period") visit
+                       return all "Shifts during Visit"(visit, shiftDuration))
+
+define function "Is Conforming Shift"(shift Interval<DateTime>):
+  (1) _
+    let glucoseMeasurements: ("Valid Glucose Measurements") m
+                               where (convert m to DateTime) during shift
+                               return all m
+      return "Conforming Glucose Measurements"(glucoseMeasurements)
+
+define "Conforming Shifts":
+  (Shifts) s where "Is Conforming Shift"(s) return all s
+
+// Quality Indicator
+
+define "Is in Initial Population":
+      Exists(elm."Intensive Care Visits in Review Period")
+  and (elm."Age at Start of Review Period" >= 18)
+
 define Denominator:
-  Count(elm."Intensive Care Visits in Review Period") -
-  Count("Visits with High Glucose Measurements")
+  Count("Conforming Shifts")
 
 define Numerator:
-  Count(elm."Intensive Care Visits in Review Period")
+  Count(Shifts)
 
 define QI:
-  Numerator / Denominator
+  if "Is in Initial Population" then
+    Denominator / Numerator
+  else
+    null
+
+define Result:
+  {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI}
 
 // vim: filetype=cql

@@ -7,7 +7,7 @@ include OMOPFunctions
 
 // TODO: @sgibb,: drop default value when leaving testing environment
 parameter "Review Period"
-    default Interval[@2025-04-05T00:00:00.0, @2025-04-20T00:00:00.0)
+    default Interval[@1005-04-05T00:00:00.0, @3025-04-20T00:00:00.0)
 
 // Terminology
 // The OMOPSV (OMOP Standard Vocabulary) codesystem is built-in and

@@ -47,62 +47,19 @@ define "Age at Start of Review Period":
   AgeInYearsAt(date from start of "Review Period")
 
 /*
-@title: Valid visits occurrences
-@description: Limit visits to valid visits, where the admission is before the
-discharge.
-@return: Valid visits sorted by admission date.
-@author: Sebastian Gibb <mail@sebastiangibb.de>
-@examples
-include "IndicateQiElements" called elm
-elm."Valid VisitOccurence"
-*/
-define "Valid VisitOccurrence":
-  ([VisitOccurrence] v sort by visitStartDatetime) v
-  where v.visitStartDatetime <= v.visitEndDatetime
-  return all v
-
-/*
-@title: Age in Years
-@description: AgeInYearsAt is not working in CQL-on-OMOP with the current test
-data. This function calculate the age based on the year, month, day information
-given.
-@param: p
-@param: reftime reference time, e.g. today.
-@return: Integer, age in years
-@examples:
-include "IndicateQiElements" called elm
-elm.iqAgeInYears([Person ] p, end of elm."Review Period")
-*/
-define function iqAgeInYears(person List<Person>, reftime DateTime):
-  (person) p return CalculateAgeInYearsAt(
-    Date(p.yearOfBirth, p.monthOfBirth, p.dayOfBirth), (reftime) r
-  )
-
-/*
 @title: Intensive Care Visits
-@description: Limit visits/population to adult intensive care patients.
+@description: Limit visits to intensive care patients.
 @return: Entries with an "Intensive Care" concept.
 @author: Sebastian Gibb <mail@sebastiangibb.de>
 @examples:
 include "IndicateQiElements" called elm
 elm."Intensive Care Visits"
 */
-// TODO: @sgibb, limit to adults if supported by CQL-on-OMOP
-/*define "Intensive Care Visits":
-    "Valid VisitOccurrence" v
-        where v.visitConcept ~ "Intensive Care" 
-        //   and AgeInYearsAt(start of "Review Period") >= 18
-        return all v
-*/
-// workaround; needs `context Patient` and `,focus [Person]` in the REPL
 define "Intensive Care Visits":
-  "Valid VisitOccurrence" v 
-        where v.visitConcept ~ "Intensive Care" 
-          and CalculateAgeInYearsAt(
-            Date(Patient.yearOfBirth, Patient.monthOfBirth, Patient.dayOfBirth),
-            start of "Review Period"
-          ) >= 18
-        return all v
+  [VisitOccurrence: "Intensive Care"] v
+    where v.visitStartDatetime <= v.visitEndDatetime
+    return all v
+    sort by visitStartDatetime
 
 /*
 @title: Intensive Care Visits in Review Period
@@ -116,7 +73,7 @@ elm."Intensive Care Visits in Review Period"
 */
 define "Intensive Care Visits in Review Period":
   "Intensive Care Visits" v
-    where v.visitStartDatetime after start of "Review Period" 
+    where v.visitStartDatetime after start of "Review Period"
       and v.visitEndDatetime before end of "Review Period"
     return all v
 
@@ -166,4 +123,3 @@ define function LimitPeriod(tp List<Interval<DateTime>>, rp Interval<DateTime>):
     (tp) p return all p intersect (rp)
 
 // vim: filetype=cql
-

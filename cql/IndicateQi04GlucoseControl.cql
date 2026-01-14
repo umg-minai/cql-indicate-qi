@@ -33,14 +33,11 @@ include LocalTimeGermany called L
 parameter "Shift Start within Day" Quantity default 6 hours
 parameter "Shift Duration"         Quantity default 8 'h'
 
-parameter "Low Glucose Level in mg/dL" default 140 'mg/dL'
-parameter "Low Glucose Level in mm[Hg]" default 200.0 'mm[Hg]'
+parameter "Acceptable Glucose Levels"
+  default Interval[3.3 'mmol/L', 10.0 'mmol/L']
 
-parameter "High Glucose Level in mg/dL" default 140 'mg/dL'
-parameter "High Glucose Level in mm[Hg]" default 200.0 'mm[Hg]'
-//parameter "High Glucose Level" default 10.0 'mmol/l'
-
-parameter "Time between consecutive non-Acceptable Glucose Levels" default 2 hours
+parameter "Time between consecutive non-Acceptable Glucose Levels"
+  default 2 hours
 
 // Not used: code "Glucose": '3020491' from elm.OMOPSV    // Glucose [Moles/volume] in Blood
 code "Glucose in Serum":              '3004501' from elm.OMOPSV
@@ -70,33 +67,29 @@ define "Valid Glucose Measurements":
 
 // Glucose levels
 
-define function "Convert mol/L to g/L"(quantity Quantity):
+define function "Convert g/L to mol/L"(quantity Quantity):
   (1) _
-    let scaled: convert quantity to 'mmol/L'
-      return Quantity{value: 18.02 * scaled.value, unit: 'mg/dL'}
+    let scaled: convert quantity to 'mg/dL'
+      return Quantity{value: 1/18.02 * scaled.value, unit: 'mmol/L'}
 
 define function "Is High Glucose Level"(glucoseLevel Quantity):
   case
     when Matches(glucoseLevel.unit, '.*g/.*L') then
-      glucoseLevel > "High Glucose Level in mg/dL"
+      "Convert g/L to mol/L"(glucoseLevel) > end of "Acceptable Glucose Levels"
     when Matches(glucoseLevel.unit, '.*mol/.*L') then
-      "Convert mol/L to g/L"(glucoseLevel) > "High Glucose Level in mg/dL"
-    when glucoseLevel.unit = 'mm[Hg]' then
-      glucoseLevel > "High Glucose Level in mm[Hg]"
+      glucoseLevel > end of "Acceptable Glucose Levels"
     else
-      Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mm[HG]" or convertible to "g/L"')
+      Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L" or convertible to "g/L"')
   end
 
 define function "Is Low Glucose Level"(glucoseLevel Quantity):
   case
   when Matches(glucoseLevel.unit, '.*g/.*L') then
-    glucoseLevel < "Low Glucose Level in mg/dL"
+    "Convert g/L to mol/L"(glucoseLevel) < start of "Acceptable Glucose Levels"
   when Matches(glucoseLevel.unit, '.*mol/.*L') then
-    "Convert mol/L to g/L"(glucoseLevel) < "Low Glucose Level in mg/dL"
-  when glucoseLevel.unit = 'mm[Hg]' then
-    glucoseLevel < "Low Glucose Level in mm[Hg]"
+    glucoseLevel < start of "Acceptable Glucose Levels"
   else
-    Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mm[HG]" or convertible to "g/L"')
+    Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L" or convertible to "g/L"')
   end
 
 define function "Is Acceptable Glucose Level"(glucoseLevel Quantity):

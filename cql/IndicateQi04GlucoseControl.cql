@@ -70,7 +70,7 @@ define "Valid Glucose Measurements":
 define function "Convert g/L to mol/L"(quantity Quantity):
   (1) _
     let scaled: convert quantity to 'mg/dL'
-      return Quantity{value: 1/18.02 * scaled.value, unit: 'mmol/L'}
+      return Quantity{value: 1/18 * scaled.value, unit: 'mmol/L'}
 
 define function "Is High Glucose Level"(glucoseLevel Quantity):
   case

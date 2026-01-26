@@ -3,7 +3,6 @@ library "IndicateQiElements" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
-include OMOPFunctions
 
 // TODO: @sgibb,: drop default value when leaving testing environment
 parameter "Review Period"
@@ -22,7 +21,10 @@ code "Intensive Care": '32037' from OMOPSV
 
 code "Body Height": '607590' from OMOPSV
 
-// Gender
+code "Body Weight": '4099154' from OMOPSV
+
+code "Ideal Body Weight": '40308117' from OMOPSV
+
 code "Gender Female": '8532' from OMOPSV
 code "Gender Male":   '8507' from OMOPSV
 
@@ -46,17 +48,31 @@ context Patient
 define "Age at Start of Review Period":
   AgeInYearsAt(date from start of "Review Period")
 
-define "Most Recent Height Measurement":
+define "Most Recent Body Height Measurement":
   First([Measurement: "Body Height"] m
           return all m
           sort by measurementDatetime desc)
 
-define "Ideal Body Weight":
-  if "Most Recent Height Measurement" is null then
-    null
-  else
-    "Ideal Body Weight for Height"("Most Recent Height Measurement",
-                                   Patient.genderConcept)
+define "Most Recent Body Weight Measurement":
+  First([Measurement: "Body Weight"] m
+          return all m
+          sort by measurementDatetime desc)
+
+define "Most Recent Ideal Body Weight Measurement":
+  First([Measurement: "Ideal Body Weight"] m
+          return all m
+          sort by measurementDatetime desc)
+
+define "Ideal Body Weight Measured or Computed":
+  case
+    when "Most Recent Ideal Body Weight Measurement" is not null then
+      convert "Most Recent Ideal Body Weight Measurement" to Quantity
+    when "Most Recent Body Height Measurement" is not null then
+      "Ideal Body Weight for Height"("Most Recent Body Height Measurement",
+                                     Patient.genderConcept)
+    else
+      null
+  end
 
 /*
 @title: Intensive Care Visits

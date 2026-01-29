@@ -91,4 +91,4 @@ define QI:
     null
 
 define Result:
-  {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI}
+  {patient: Patient, numerator: Numerator, denominator: Denominator, qi: QI}

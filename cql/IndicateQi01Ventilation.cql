@@ -242,7 +242,7 @@ define QI:
 define debugPeepTime: convert First("PEEP Measurements") to DateTime
 
 define Result:
-  {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI}
+  {patient: Patient, numerator: Numerator, denominator: Denominator, qi: QI}
 
 define debugResult:
   {

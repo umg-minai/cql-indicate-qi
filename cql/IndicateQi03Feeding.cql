@@ -322,14 +322,14 @@ define QI:
     null
 
 define Result:
-  {r: {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI
+  {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI}
 
-  ,
+define debugResult:
+  {
   /*insulin: "Insulin Exposures" e return all e, //OMOPFunctions.ToQuantity(e)
     co2: "CO2 Production Rate Measurements" m return all {t: m.measurementDatetime, v: convert m to Quantity} sort by t,
     mco2: Median("CO2 Production Rate Measurements" m return convert m to Quantity),
   w: elm."Most Recent Body Weight Measurement",
   h: elm."Most Recent Body Height Measurement"*/
   r: "Renal Replacement Therapy Procedures" m return all m
-
-  }}
+  }

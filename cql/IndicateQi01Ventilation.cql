@@ -242,12 +242,11 @@ define QI:
 define debugPeepTime: convert First("PEEP Measurements") to DateTime
 
 define Result:
-  {r:{
-    patient:             Patient.personId,
+  {patient: Patient.personId, numerator: Numerator, denominator: Denominator, qi: QI}
+
+define debugResult:
+  {
     inInitialPopulation: "Is in Initial Population",
-    numerator:           Numerator,
-    denominator:         Denominator,
-    qi:                  QI,
 
     // debugPeepTime:      debugPeepTime,
     // AllFiOtwo:          [Measurement: "FiO2 Measurement"] m return all convert m to DateTime,
@@ -265,4 +264,4 @@ define Result:
     intubated:           Exists([DeviceExposure: "Intubation Tube"]),
     ards:                Exists([ConditionOccurrence: "ARDS Condition"]),
     age:                 (elm."Age at Start of Review Period" >= 18)
-  }}
+  }

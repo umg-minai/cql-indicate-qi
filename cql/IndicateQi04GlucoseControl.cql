@@ -206,6 +206,12 @@ define QI:
     null
 
 define Result:
-  {patient: Patient, numerator: Numerator, denominator: Denominator, qi: QI}
+  {
+    patient:     Patient,
+    period:      elm."Review Period",
+    numerator:   Numerator,
+    denominator: Denominator,
+    qi:          QI
+  }
 
 // vim: filetype=cql

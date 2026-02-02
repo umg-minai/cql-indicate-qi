@@ -60,25 +60,21 @@ define function "Convert g/L to mol/L"(quantity Quantity):
     let scaled: convert quantity to 'mg/dL'
       return Quantity{value: 1/18 * scaled.value, unit: 'mmol/L'}
 
-define function "Is High Glucose Level"(glucoseLevel Quantity):
+define function "Ensure Glucose Level in mol/L"(glucoseLevel Quantity):
   case
     when Matches(glucoseLevel.unit, '.*g/.*L') then
-      "Convert g/L to mol/L"(glucoseLevel) > end of "Acceptable Glucose Levels"
+      "Convert g/L to mol/L"(glucoseLevel)
     when Matches(glucoseLevel.unit, '.*mol/.*L') then
-      glucoseLevel > end of "Acceptable Glucose Levels"
+      glucoseLevel
     else
       Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L" or convertible to "g/L"')
   end
 
+define function "Is High Glucose Level"(glucoseLevel Quantity):
+  "Ensure Glucose Level in mol/L"(glucoseLevel) > end of "Acceptable Glucose Levels"
+
 define function "Is Low Glucose Level"(glucoseLevel Quantity):
-  case
-  when Matches(glucoseLevel.unit, '.*g/.*L') then
-    "Convert g/L to mol/L"(glucoseLevel) < start of "Acceptable Glucose Levels"
-  when Matches(glucoseLevel.unit, '.*mol/.*L') then
-    glucoseLevel < start of "Acceptable Glucose Levels"
-  else
-    Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L" or convertible to "g/L"')
-  end
+  "Ensure Glucose Level in mol/L"(glucoseLevel) < start of "Acceptable Glucose Levels"
 
 define function "Is Acceptable Glucose Level"(glucoseLevel Quantity):
       (not "Is High Glucose Level"(glucoseLevel))
@@ -86,7 +82,7 @@ define function "Is Acceptable Glucose Level"(glucoseLevel Quantity):
 
 define function "Acceptable Follow-up Glucose Level"(firstValue  Quantity,
                                                      secondValue Quantity):
-  "Is Acceptable Glucose Level"(secondValue)
+     "Is Acceptable Glucose Level"(secondValue)
   /* Below acceptable range but increased by at least 20 % */
   or (    "Is Low Glucose Level"(firstValue)
       and "Is Low Glucose Level"(secondValue)

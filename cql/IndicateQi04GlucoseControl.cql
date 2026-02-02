@@ -178,7 +178,7 @@ define "Conforming Shifts":
                          ({ First(shiftsInVisit) }) s
                            where "Is Conforming Shift"(s, true)
                            return all s,
-                         (shiftsInVisit) s
+                         (Tail(shiftsInVisit)) s
                            where "Is Conforming Shift"(s, false)
                            return all s
                        }))

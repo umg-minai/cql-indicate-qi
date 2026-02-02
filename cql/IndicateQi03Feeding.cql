@@ -16,7 +16,7 @@
 
 library "IndicateQi03Feeding" version '1.0.0'
 
-using OMOP version 'v5.4.MIMIC'
+using OMOP version 'v5.4'
 
 include OMOPHelpers
 include OMOPFunctions

@@ -18,8 +18,9 @@ library "IndicateQi05ThrombembolicPrevention" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
+include TimePeriods called T
 include IndicateQiElements called elm
-include "AnticoagulationDrugs"
+include AnticoagulationDrugs
 
 context Patient
 
@@ -44,21 +45,8 @@ define debugVisit: elm."Intensive Care Visits in Review Period" v return convert
 define function "24-hour Period with Conforming Medication"(period Interval<DateTime>):
   Exists("Anticoagulation Drug Exposures during Period"(period))
 
-define function "24-hour Periods during Visit"(visit VisitOccurrence):
-  (1) _
-    let periodInterval: convert visit to Interval<DateTime>,
-        dayDuration:    Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
-      return (Expand(periodInterval, dayDuration)) s
-               return all Interval[s, s + dayDuration)
-
-define "24-hour Periods during Visits":
-  (elm."Intensive Care Visits in Review Period") v
-    let periods: "24-hour Periods during Visit"(v)
-      where Exists(periods)
-      return all periods
-
 define "24-hour Periods with conforming Medication during Visits":
-  "24-hour Periods during Visits" periods
+  T."24-hour Periods in Visits" periods
     return all Flatten({
       { First(periods) }, // First period always counts as conforming
       (Tail(periods)) p
@@ -67,7 +55,7 @@ define "24-hour Periods with conforming Medication during Visits":
     })
 
 define "24-hour Periods":
-  Flatten("24-hour Periods during Visits")
+  Flatten(T."24-hour Periods in Visits")
 
 define "24-hour Periods with Conforming Medication":
   Flatten("24-hour Periods with conforming Medication during Visits")

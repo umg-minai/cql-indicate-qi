@@ -19,7 +19,7 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 include IndicateQiElements called elm
-include Shifts called shifts
+include TimePeriods called T
 
 parameter "Acceptable Glucose Levels"
   default Interval[3.3 'mmol/L', 10.0 'mmol/L']
@@ -150,9 +150,6 @@ define function "Conforming Glucose Measurements"(measurements List<Tuple{previo
 
 // Shifts
 
-define "Shifts in Visits":
-  shifts."Shifts during Visits"(elm."Intensive Care Visits in Review Period")
-
 define function "Measurements during Shift Plus Neighbors"(shift Interval<DateTime>):
   (1) _
     let measurementsWithNeighbors: (elm."Measurements with Neighbors"("Valid Glucose Measurements")
@@ -167,10 +164,10 @@ define function "Is Conforming Shift"(shift        Interval<DateTime>,
     let shiftMeasurements: "Measurements during Shift Plus Neighbors"(shift)
       return "Conforming Glucose Measurements"(shiftMeasurements, isFirstShift)
 
-define Shifts: Flatten("Shifts in Visits")
+define Shifts: Flatten(T."Shifts in Visits")
 
 define "Conforming Shifts":
-  Flatten(("Shifts in Visits") shiftsInVisit
+  Flatten((T."Shifts in Visits") shiftsInVisit
             // Handle the first shift of each ICU visit specially since the
             // first measurement of that first shift does not have a preceding
             // measurement.

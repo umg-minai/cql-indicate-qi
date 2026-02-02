@@ -20,7 +20,6 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 include OMOPFunctions
-include Drugs
 include LocalTimeGermany called L
 include IndicateQiElements called elm
 include InsulinDrugs

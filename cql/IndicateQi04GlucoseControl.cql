@@ -186,25 +186,28 @@ define "Is in Initial Population":
       Exists(elm."Intensive Care Visits in Review Period")
   and (elm."Age at Start of Review Period" >= 18)
 
-define Denominator:
-  Count(Shifts)
-
-define Numerator:
-  Count("Conforming Shifts")
-
-define QI:
-  if "Is in Initial Population" then
-    Numerator / Denominator
-  else
-    null
+define "24-hour Periods":
+  (T."24-hour Periods in Visits") periods
+    return all (periods) p
+                 let numerator:   Count(("Conforming Shifts") s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
+                     denominator: Count((Shifts) s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
+                   return all {
+                     period:      p as Interval<DateTime>,
+                     numerator:   numerator,
+                     denominator: denominator,
+                     qi:          if "Is in Initial Population" then
+                                    numerator / denominator
+                                  else
+                                    null
+                   }
 
 define Result:
   {
-    patient:     Patient,
-    period:      elm."Review Period",
-    numerator:   Numerator,
-    denominator: Denominator,
-    qi:          QI
+    patient:      Patient,
+    reviewPeriod: elm."Review Period",
+    periods:      Flatten("24-hour Periods")
   }
 
 // vim: filetype=cql

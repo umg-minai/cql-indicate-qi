@@ -21,6 +21,7 @@ library "IndicateQi01Ventilation" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
+include TimePeriods called T
 include IndicateQiElements called elm
 
 code "ARDS Condition": '4195694' from elm.OMOPSV // ICD10 based code: '45552897'
@@ -242,28 +243,31 @@ define "Is in Initial Population":
   and Exists([ConditionOccurrence: "ARDS Condition"])
   and (elm."Age at Start of Review Period" >= 18)
 
-define Denominator:
-  Count("PEEP Measurements")
-
-define Numerator:
-  Count("Conforming PEEP Measurements")
-
-define QI:
-  if "Is in Initial Population" then
-    Numerator / Denominator
-  else
-    null
-
-define debugPeepTime: convert First("PEEP Measurements") to DateTime
+define "24-hour Periods":
+  (T."24-hour Periods in Visits") periods
+    return all (periods) p
+                 let numerator:   Count(("Conforming PEEP Measurements") s
+                                          where (p as Interval<DateTime>) contains (convert s to DateTime) return all s),
+                     denominator: Count(("PEEP Measurements") s
+                                          where (p as Interval<DateTime>) contains (convert s to DateTime) return all s)
+                   return all {
+                     period:      p as Interval<DateTime>,
+                     numerator:   numerator,
+                     denominator: denominator,
+                     qi:          if "Is in Initial Population" then
+                                    numerator / denominator
+                                  else
+                                    null
+                   }
 
 define Result:
   {
-    patient:     Patient,
-    period:      elm."Review Period",
-    numerator:   Numerator,
-    denominator: Denominator,
-    qi:          QI
+    patient:      Patient,
+    reviewPeriod: elm."Review Period",
+    periods:      Flatten("24-hour Periods")
   }
+
+define debugPeepTime: convert First("PEEP Measurements") to DateTime
 
 define debugResult:
   {

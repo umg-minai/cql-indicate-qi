@@ -86,6 +86,31 @@ define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateT
 
 // 24-hour periods
 
+// In this variant, each period start at 6:00 and ends 24 h later at
+// 5:59. All periods of this kind that fall within the visits are
+// initially generated even though some of those at the beginning and at
+// the end of the visit may not be used due to exclusion rules.
+/*define function "24-hour Periods during Visit"(visit VisitOccurrence):
+  (1) _
+    let periodInterval:   convert visit to Interval<DateTime>,
+        periodStartDay:   date from start of periodInterval,
+        periodEnd:        end of periodInterval,
+        firstPeriodStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
+        dayDuration:      Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
+      return if firstPeriodStart before periodEnd then
+               (Expand(Interval[firstPeriodStart, periodEnd], dayDuration)) s
+                 let period: Interval[s, s + dayDuration)
+                   where period included in periodInterval
+                   return all period
+             else
+               {}
+
+define "24-hour Periods during Visits":
+  (elm."Intensive Care Visits in Review Period") v
+    let periods: "24-hour Periods during Visit"(v)
+      where Exists(periods)
+      return all periods*/
+
 define "24-hour Periods with Spontaneous Breathing Trial during Visits":
   T."24-hour Periods in Visits" periods
     return all ((periods) p
@@ -108,23 +133,26 @@ define "Is in Initial Population":
   and Exists("Ventilation Procedures")
   and (elm."Age at Start of Review Period" >= 18)
 
-define Denominator:
-  Count("24-hour Periods")
-
-define Numerator:
-  Count("24-hour Periods with Spontaneous Breathing Trial")
-
-define QI:
-  if "Is in Initial Population" then
-    Numerator / Denominator
-  else
-    null
+define "24-hour Periods Results":
+  (T."24-hour Periods in Visits") periods
+    return all (periods) p
+                 let numerator:   Count(("24-hour Periods with Spontaneous Breathing Trial") s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
+                     denominator: Count(("24-hour Periods") s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
+                   return all {
+                     period:      p as Interval<DateTime>,
+                     numerator:   numerator,
+                     denominator: denominator,
+                     qi:          if "Is in Initial Population" then
+                                    numerator / denominator
+                                  else
+                                    null
+                   }
 
 define Result:
   {
-    patient:     Patient,
-    period:      elm."Review Period",
-    denominator: Denominator,
-    numerator:   Numerator,
-    qi:          QI
+    patient:      Patient,
+    reviewPeriod: elm."Review Period",
+    periods:      Flatten("24-hour Periods Results")
   }

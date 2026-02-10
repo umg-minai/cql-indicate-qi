@@ -60,23 +60,26 @@ define "Is in Initial Population":
       Exists(elm."Intensive Care Visits in Review Period")
   and (elm."Age at Start of Review Period" >= 18)
 
-define Denominator:
-  Count("24-hour Periods")
-
-define Numerator:
-  Count("24-hour Periods with Conforming Medication")
-
-define QI:
-  if "Is in Initial Population" then
-    Numerator / Denominator
-  else
-    null
+define "24-hour Periods Results":
+  (T."24-hour Periods in Visits") periods
+    return all (periods) p
+                 let numerator:   Count(("24-hour Periods with Conforming Medication") s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
+                     denominator: Count(("24-hour Periods") s
+                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
+                   return all {
+                     period:      p as Interval<DateTime>,
+                     numerator:   numerator,
+                     denominator: denominator,
+                     qi:          if "Is in Initial Population" then
+                                    numerator / denominator
+                                  else
+                                    null
+                   }
 
 define Result:
   {
-    patient:     Patient,
-    period:      elm."Review Period",
-    numerator:   Numerator,
-    denominator: Denominator,
-    qi:          QI
+    patient:      Patient,
+    reviewPeriod: elm."Review Period",
+    periods:      Flatten("24-hour Periods Results")
   }

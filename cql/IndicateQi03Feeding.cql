@@ -178,37 +178,41 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
                                                     period         Interval<DateTime>,
                                                     dayOfVisit     Integer):
   (1) _
-    let initialCalorieTarget: "Initial Calorie Target"(previousPeriod)
-      return case
-               when dayOfVisit = 0 then
-                 null // No target for first 24-hour period
+    let initialCalorieTarget: 57625.88333333 'g.m2.s-3', // "Initial Calorie Target"(previousPeriod)
+        rawTarget:            case
+                                when dayOfVisit = 0 then
+                                  null // No target for first 24-hour period
 
-               when dayOfVisit = 1 then
-                 0.75 * initialCalorieTarget
+                                when dayOfVisit = 1 then
+                                  0.75 * initialCalorieTarget
 
-               when     not "Renal Replacement Therapy Procedure in Period"(previousPeriod)
-                    and "Last Phosphate Measurement in Period"(period) < 0.65 'mmol/l'
-                    and "Max Insulin Measurement in Period"(previousPeriod) <= 4 '[IU]/h'
-                    and previousTarget >= 0.5 * initialCalorieTarget then
-                 0.25 * initialCalorieTarget
+                                when     not "Renal Replacement Therapy Procedure in Period"(previousPeriod)
+                                     and "Last Phosphate Measurement in Period"(period) < 0.65 'mmol/l'
+                                     and "Max Insulin Measurement in Period"(previousPeriod) <= 4 '[IU]/h'
+                                     and previousTarget >= 0.5 * initialCalorieTarget then
+                                  0.25 * initialCalorieTarget
 
-               when     "Max Insulin Measurement in Period"(previousPeriod) < 2 '[IU]/h'
-                    and previousTarget < initialCalorieTarget then
-                 previousTarget + 0.25 * initialCalorieTarget
+                                when     "Max Insulin Measurement in Period"(previousPeriod) < 2 '[IU]/h'
+                                     /*and previousTarget < initialCalorieTarget*/ then
+                                  previousTarget + 0.25 * initialCalorieTarget
 
-               when     "Max Insulin Measurement in Period"(previousPeriod)
-                        in Interval[2 '[IU]/h', 4 '[IU]/h']
-                    and previousTarget > 0 then
-                 previousTarget - 0.25 * initialCalorieTarget
+                                when     "Max Insulin Measurement in Period"(previousPeriod)
+                                         in Interval[2 '[IU]/h', 4 '[IU]/h']
+                                     /*and previousTarget > 0 'kcal/d'*/ then
+                                  previousTarget - 0.25 * initialCalorieTarget
 
-               when     "Max Insulin Measurement in Period"(previousPeriod) > 4 '[IU]/h'
-                    and previousTarget > 0 then
-                 previousTarget - 0.5 * initialCalorieTarget
+                                when     "Max Insulin Measurement in Period"(previousPeriod) > 4 '[IU]/h'
+                                     /*and previousTarget < 0 'kcal/d'*/ then
+                                  previousTarget - 0.5 * initialCalorieTarget
 
-               else // TODO(moringenj):
-                 null
-
-             end
+                                else // TODO(moringenj):
+                                  Message(null, true, '400', 'Error', 'No matching case; insulin ' + ToString("Max Insulin Measurement in Period"(previousPeriod)) + ' previous target ' + ToString(previousTarget))
+                                  //null
+                              end
+      // Clamp calorie target to [0, Initial Calorie Target]; the
+      // value could be outside of this range due to the unchecked
+      // additions and subtractions above.
+      return Max({0 'kcal/d', Min({rawTarget, initialCalorieTarget})})
 
 define function "24-hour Periods with Results"(periods List<Interval<DateTime>>):
   (periods) p aggregate r starting  ({

@@ -160,7 +160,8 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
                (1) __
                  let paO2: "PaO2 LOCF"(peepTime),
                      fiO2: 1 '%' // TODO(moringenj) where should this come from?
-                   return if duration in hours between (convert paO2 to DateTime) and peepTime < 6 'h' then
+                   return if     duration in hours between (convert paO2 to DateTime)
+                             and peepTime < 6 'h' then
                             paO2 / fiO2
                           else
                             300 'mm[Hg]'

@@ -2,16 +2,16 @@
 // Version  1.0
 //
 // Description:
-//  Venous thromboembolism (VTE) is a frequent complication that
-//  contributes significantly to morbidity and mortality among critically
-//  ill patients.  Pharmacologic thromboprophylaxis should reduce VTE.
+//   Venous thromboembolism (VTE) is a frequent complication that
+//   contributes significantly to morbidity and mortality among critically
+//   ill patients.  Pharmacologic thromboprophylaxis should reduce VTE.
 //
 // Numerator:
-//  Number of 24 hour periods starting at admission + 24 hours in which
-//  at least one of the listed drugs has been used.
+//   Number of 24 hour periods starting with the second 24 hour period
+//   in which at least one of the listed drugs has been used.
 //
 // Denominator:
-//  Number of 24 hour periods.
+//   Number of 24 hour periods.
 
 library "IndicateQi05ThrombembolicPrevention" version '1.0.0'
 
@@ -31,16 +31,10 @@ define "Anticoagulation Drug Exposures":
 
 define function "Anticoagulation Drug Exposures during Period"(period Interval<DateTime>):
   ("Anticoagulation Drug Exposures") e
-    where convert e to Interval<DateTime> overlaps period
-    return e
-
-define debugExposures:
-  "Anticoagulation Drug Exposures" e
-    return all {i: convert e to Interval<DateTime>, d: e.drugConcept.conceptName}
+    where (convert e to Interval<DateTime>) overlaps period
+    return all e
 
 // 24-hour periods
-
-define debugVisit: elm."Intensive Care Visits in Review Period" v return convert v to Interval<DateTime>
 
 define function "24-hour Period with Conforming Medication"(period Interval<DateTime>):
   Exists("Anticoagulation Drug Exposures during Period"(period))

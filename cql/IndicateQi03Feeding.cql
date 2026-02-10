@@ -28,16 +28,16 @@ include InsulinDrugs
 // unit [cal]
 code "Energy Requirement": '4022415' from elm.OMOPSV
 
-/*Contraindication to enteral feeding:
-- 4141768*/
+code "Contraindication to Enteral Feeding": '4141768' from elm.OMOPSV
 
-// unit  [cal]
+// unit [cal]
 code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV
 
-code "CO2 Production Rate": '21490580' from elm.OMOPSV
-
+// TODO(moringenj): Do we not need this for anything?
 /*Calorie intake total:
 - 3007882*/
+
+code "CO2 Production Rate": '21490580' from elm.OMOPSV
 
 code "Continuous Venovenous Hemofiltration":    '4051330' from elm.OMOPSV
 code "Continuous Venovenous Hemodialysis":      '4051329' from elm.OMOPSV
@@ -96,8 +96,7 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
     let lastMeasurement: Last("Phosphate Measurements" m
                                 where m.measurementDatetime in period
                                 return all m)
-
-      // the specification states that if there is not phosphate
+      // The specification states that if there is no phosphate
       // measurement in the period, assume it was normal, that is
       // greater than 0.65 mmol/l.
       return if lastMeasurement is null then
@@ -150,20 +149,22 @@ define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod 
 define "Initial Calorie Target via BMI":
   case
     when "Body Mass Index" < 30 then
-      24 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity) // TODO(moringenj): use time-dependent body weight
+      // TODO(moringenj): use time-dependent body weight
+      24 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
     when "Body Mass Index" <= 50 then
       14 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
     else
       24 'kcal/d/kg'
       * Quantity{
-          value: (48.4 + 77 * ((convert elm."Most Recent Body Height Measurement" to Quantity) - 1.5 'm').value), // TODO(moringenj): use existing "Ideal Body Weight"
+          // TODO(moringenj): use existing "Ideal Body Weight"
+          value: (48.4 + 77 * ((convert elm."Most Recent Body Height Measurement" to Quantity) - 1.5 'm').value),
           unit:  'kg'
         }
   end
 
 define function "Initial Calorie Target"(previousDay Interval<DateTime>):
   (1) _
-    // TODO(moringenj): what temporal interval should we consider for the energy requirement
+    // TODO(moringenj): what temporal interval should we consider for the energy requirement?
     let energyRequirement: "Last Energy Requirement Measurement in Period"(previousDay)
       return if energyRequirement is not null then
                energyRequirement

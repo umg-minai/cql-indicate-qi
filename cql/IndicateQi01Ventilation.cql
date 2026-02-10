@@ -117,6 +117,15 @@ define "PaO2/FiO2 Measurements":
     return all m
     sort by measurementDatetime desc
 
+define "Ventilation Procedures":
+  [ProcedureOccurrence: "Ventilation Procedure"]
+
+define "Intubation Tube Exposures":
+  [DeviceExposure: "Intubation Tube"]
+
+define "ARDS Conditions":
+  [ConditionOccurrence: "ARDS Condition"]
+
 define "Ventilation Mode Obserations":
   [Observation: "Ventilation Mode"]
 
@@ -217,12 +226,13 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
 
 define function "Is Conforming PEEP"(peepMeasurement Measurement):
   (1) _
-    let peepQuantity: convert peepMeasurement to Quantity,
-        peepTime:     convert peepMeasurement to DateTime,
-        tidalVolume:  "Tidal Volume LOCF"(peepTime),
-        pplat:        30 'cm[H2O]', // TODO(moringenj)
-        pdelta:       14 'cm[H2O]'
-      return     peepQuantity >= "Recommended PEEP for PaO2"(peepTime)
+    let peepQuantity:    convert peepMeasurement to Quantity,
+        peepTime:        convert peepMeasurement to DateTime,
+        tidalVolume:     "Tidal Volume LOCF"(peepTime),
+        pplat:           30 'cm[H2O]', // TODO(moringenj)
+        pdelta:          14 'cm[H2O]',
+        recommendedPEEP: "Recommended PEEP for PaO2"(peepTime)
+      return     peepQuantity >= recommendedPEEP
              and if tidalVolume is not null then
                    "Is Conforming Tidal Volume"(tidalVolume)
                  else
@@ -235,58 +245,41 @@ define "Conforming PEEP Measurements":
 
 // Quality Indicator
 
-// TODO(moringenj): these must happen at the same time
-define "Is in Initial Population":
-      Exists([VisitOccurrence: elm."Intensive Care"]) // TODO(moringenj): "Intensive Care Visits in Review Period"
-  and Exists([ProcedureOccurrence: "Ventilation Procedure"]) // TODO(moringenj): observation period
-  and Exists([DeviceExposure: "Intubation Tube"]) // TODO(moringenj): should this be DeviceExposure?
-  and Exists([ConditionOccurrence: "ARDS Condition"])
-  and (elm."Age at Start of Review Period" >= 18)
+// TODO(moringenj): We require that all conditions are fulfilled within a visit.
+//                  Is that logic correct?
+define function "Is in Initial Population"(visit VisitOccurrence):
+  (1) _
+    let visitInterval: convert visit to Interval<DateTime>
+      return     Exists("Ventilation Procedures" p
+                          where (convert p to Interval<DateTime>)
+                                overlaps visitInterval)
+             and Exists("Intubation Tube Exposures" d
+                          where (convert d to Interval<DateTime>)
+                                 overlaps visitInterval)
+             and Exists("ARDS Conditions" c
+                          where (convert c to Interval<DateTime>)
+                                overlaps visitInterval)
+             and AgeInYearsAt(start of visitInterval) >= 18
 
-define "24-hour Periods":
-  (T."24-hour Periods in Visits") periods
-    return all (periods) p
-                 let numerator:   Count(("Conforming PEEP Measurements") s
-                                          where (p as Interval<DateTime>) contains (convert s to DateTime) return all s),
-                     denominator: Count(("PEEP Measurements") s
-                                          where (p as Interval<DateTime>) contains (convert s to DateTime) return all s)
-                   return all {
-                     period:      p as Interval<DateTime>,
-                     numerator:   numerator,
-                     denominator: denominator,
-                     qi:          if "Is in Initial Population" then
-                                    numerator / denominator
-                                  else
-                                    null
-                   }
+define "Visit Results":
+  (T."Visits with 24-hour Periods") visitWithPeriods
+    let visitInterval:               convert (visitWithPeriods.visit as OMOP.VisitOccurrence) to Interval<DateTime>,
+        inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
+        measurementsInVisit:         ("PEEP Measurements") m
+                                       where m in visitInterval
+                                       return all m
+      return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
+                   let measurementsInPeriod: (measurementsInVisit) m
+                                               where m in period
+                                               return all m,
+                       goodMeasurements:     (measurementsInPeriod) m
+                                               where "Is Conforming PEEP"(m)
+                                               return all m,
+                       numerator:            Count(goodMeasurements),
+                       denominator:          Count(measurementsInPeriod)
+                     return all elm."Period Result"(period,
+                                                    inInitialPopulationForVisit,
+                                                    numerator,
+                                                    denominator)
 
-define Result:
-  {
-    patient:      Patient,
-    reviewPeriod: elm."Review Period",
-    periods:      Flatten("24-hour Periods")
-  }
-
-define debugPeepTime: convert First("PEEP Measurements") to DateTime
-
-define debugResult:
-  {
-    inInitialPopulation: "Is in Initial Population",
-
-    // debugPeepTime:      debugPeepTime,
-    // AllFiOtwo:          [Measurement: "FiO2 Measurement"] m return all convert m to DateTime,
-    FiOtwo:             convert "FiO2 LOCF"(debugPeepTime) to Quantity,
-    PaOtwoDivFiOTwo:    "Ensure PaO2/FiO2"(debugPeepTime),
-
-    tidalVolumeM:        [Measurement: "Tidal Volume Measurement"] m return all convert m to Quantity,
-    recommendedPeep:     "Recommended PEEP for PaO2"(debugPeepTime),
-    peepMeasurements:    "PEEP Measurements" m return all convert m to Quantity,
-
-    ventilationMode:     "Ventilation Mode Obserations" o return all o, // convert o to Quantity,
-
-    intensiveCare:       Exists([VisitOccurrence: elm."Intensive Care"]),
-    ventilation:         Exists([ProcedureOccurrence: "Ventilation Procedure"]),
-    intubated:           Exists([DeviceExposure: "Intubation Tube"]),
-    ards:                Exists([ConditionOccurrence: "ARDS Condition"]),
-    age:                 (elm."Age at Start of Review Period" >= 18)
-  }
+define Result: elm."Overall Result"(Patient, "Visit Results")

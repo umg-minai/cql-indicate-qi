@@ -150,48 +150,36 @@ define function "Is Conforming Shift"(shift        Interval<DateTime>,
 
 // Shifts
 
-define "Shifts": Flatten(T."Shifts in Visits")
-
-define "Conforming Shifts":
-  Flatten((T."Shifts in Visits") shiftsInVisit
-            // Handle the first shift of each ICU visit specially since the
-            // first measurement of that first shift does not have a preceding
-            // measurement.
-            return all Flatten({
-                         ({ First(shiftsInVisit) }) s
-                           where "Is Conforming Shift"(s, true)
-                           return all s,
-                         (Tail(shiftsInVisit)) s
-                           where "Is Conforming Shift"(s, false)
-                           return all s
-                       }))
+define function "Conforming Shifts in Visit"(shifts List<Interval<DateTime>>):
+  // Handle the first shift of each ICU visit specially since the
+  // first measurement of that first shift does not have a preceding
+  // measurement.
+  Flatten({
+            ({ First(shifts) }) s
+              where "Is Conforming Shift"(s, true)
+              return all s,
+            (Tail(shifts)) s
+              where "Is Conforming Shift"(s, false)
+              return all s
+         })
 
 // Quality Indicator
 
-define "Is in Initial Population":
-      Exists(elm."Intensive Care Visits in Review Period")
-  and (elm."Age at Start of Review Period" >= 18)
+define function "Is in Initial Population"(visit Interval<DateTime>):
+  AgeInYearsAt(convert visit to DateTime) >= 18
 
-define "24-hour Periods":
-  (T."24-hour Periods in Visits") periods
-    return all (periods) p
-                 let numerator:   Count(("Conforming Shifts") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
-                     denominator: Count(("Shifts") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
-                   return all {
-                     period:      p as Interval<DateTime>,
-                     numerator:   numerator,
-                     denominator: denominator,
-                     qi:          if "Is in Initial Population" then
-                                    numerator / denominator
-                                  else
-                                    null
-                   }
+define "Visit Results":
+  (T."Visits with 24-hour Periods") visitWithPeriods
+    let visit:                       visitWithPeriods.visit,
+        inInitialPopulationForVisit: "Is in Initial Population"(visit),
+        shifts:                      T."Shifts during Visit"(visit),
+        goodShifts:                  "Conforming Shifts in Visit"(shifts)
+      return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
+                   return all elm."Period Result"(
+                     period,
+                     inInitialPopulationForVisit,
+                     Count((goodShifts) s where s during period),
+                     Count((shifts)     s where (s as Interval<DateTime>) during period)
+                   )
 
-define Result:
-  {
-    patient:      Patient,
-    reviewPeriod: elm."Review Period",
-    periods:      Flatten("24-hour Periods")
-  }
+define Result: elm."Overall Result"(Patient, "Visit Results")

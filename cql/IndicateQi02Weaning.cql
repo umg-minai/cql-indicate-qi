@@ -84,75 +84,36 @@ define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateT
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Periods without Ventilation" p where p overlaps period)
 
-// 24-hour periods
-
-// In this variant, each period start at 6:00 and ends 24 h later at
-// 5:59. All periods of this kind that fall within the visits are
-// initially generated even though some of those at the beginning and at
-// the end of the visit may not be used due to exclusion rules.
-/*define function "24-hour Periods during Visit"(visit VisitOccurrence):
-  (1) _
-    let periodInterval:   convert visit to Interval<DateTime>,
-        periodStartDay:   date from start of periodInterval,
-        periodEnd:        end of periodInterval,
-        firstPeriodStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
-        dayDuration:      Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
-      return if firstPeriodStart before periodEnd then
-               (Expand(Interval[firstPeriodStart, periodEnd], dayDuration)) s
-                 let period: Interval[s, s + dayDuration)
-                   where period included in periodInterval
-                   return all period
-             else
-               {}
-
-define "24-hour Periods during Visits":
-  (elm."Intensive Care Visits in Review Period") v
-    let periods: "24-hour Periods during Visit"(v)
-      where Exists(periods)
-      return all periods*/
-
-define "24-hour Periods with Spontaneous Breathing Trial during Visits":
-  T."24-hour Periods in Visits" periods
-    return all ((periods) p
-                  where "Is Spontaneous Breathing Trial in Period"(p)
-                  return all p)
-
-define "24-hour Periods":
-  Flatten(T."24-hour Periods in Visits")
-
-define "24-hour Periods with Spontaneous Breathing Trial":
-  Flatten("24-hour Periods with Spontaneous Breathing Trial during Visits")
-
 // Quality Indicator
 
-// TODO(moringenj): these must happen at the same time
-define "Is in Initial Population":
-      Exists(elm."Intensive Care Visits in Review Period")
-  and Exists([DeviceExposure: "Intubation Tube"])
-  // TODO(moringenj): ventilation must be at least 48 hours
-  and Exists("Ventilation Procedures")
-  and (elm."Age at Start of Review Period" >= 18)
+define function "Ventilated for at least 48 Hours"(procedureIntervals List<Interval<DateTime>>):
+  Exists((collapse(procedureIntervals)) i
+           where duration in hours of i >= 48
+           return all i)
 
-define "24-hour Periods Results":
-  (T."24-hour Periods in Visits") periods
-    return all (periods) p
-                 let numerator:   Count(("24-hour Periods with Spontaneous Breathing Trial") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
-                     denominator: Count(("24-hour Periods") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
-                   return all {
-                     period:      p as Interval<DateTime>,
-                     numerator:   numerator,
-                     denominator: denominator,
-                     qi:          if "Is in Initial Population" then
-                                    numerator / denominator
-                                  else
-                                    null
-                   }
+define function "Is in Initial Population"(visit VisitOccurrence):
+  (1) _
+    let visitInterval: convert visit to Interval<DateTime>
+      return     Exists([DeviceExposure: "Intubation Tube"] d
+                          where (convert d to Interval<DateTime>)
+                                overlaps visitInterval)
+             and "Ventilated for at least 48 Hours"(
+                   "Ventilation Procedures" p
+                     let procedureInterval: convert p to Interval<DateTime>
+                       where procedureInterval overlaps visitInterval
+                       return all procedureInterval
+                 )
+             and AgeInYearsAt(start of visitInterval) >= 18
 
-define Result:
-  {
-    patient:      Patient,
-    reviewPeriod: elm."Review Period",
-    periods:      Flatten("24-hour Periods Results")
-  }
+define "Visit Results":
+  (T."Visits with 24-hour Periods") visitWithPeriods
+    let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit)
+      return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
+                   return all elm."Period Result"(
+                     period,
+                     inInitialPopulationForVisit,
+                     if "Is Spontaneous Breathing Trial in Period"(period) then 1 else 0,
+                     1
+                   )
+
+define Result: elm."Overall Result"(Patient, "Visit Results")

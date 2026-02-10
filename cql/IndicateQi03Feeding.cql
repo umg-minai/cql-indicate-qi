@@ -216,134 +216,63 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
       return Max({0 'kcal/d', Min({rawTarget, initialCalorieTarget})})
 
 define function "24-hour Periods with Results"(periods List<Interval<DateTime>>):
-  (periods) p aggregate r starting  ({
-                                       previousPeriod: null,
-                                       previousTarget: null,
-                                       dayOfVisit:     0,
-                                       results:        {},
-                                       debug: {}
-                                     }):
+  (periods) p aggregate r starting ({
+                                      previousPeriod: null,
+                                      previousTarget: null,
+                                      dayOfVisit:     0,
+                                      results:        {},
+                                      debug:          {}
+                                    }):
     (1) _
       let target: "Calorie Target for 24-hour Period"(
-                    r.previousPeriod,
                     r.previousTarget,
+                    r.previousPeriod,
                     p,
                     r.dayOfVisit
                   ),
           actual: "Calorie Intake in Period"(p),
-          result: 0.9 * target <= actual and actual <= 1.1 * target
+          result: 0.9 * target <= actual and actual <= 1.1 * target,
+          debug:  Flatten({r.debug,   {{
+                                        previousPeriod: r.previousPeriod,
+                                        previousTarget: r.previousTarget,
+                                        period:         p,
+                                        dayOfVisit:     r.dayOfVisit,
+                                        phosphate:      "Last Phosphate Measurement in Period"(p),
+                                        insulin:        "Max Insulin Measurement in Period"(r.previousPeriod),
+                                        targetIntake:   target,
+                                        actualIntake:   actual,
+                                        result:         result
+                                      }}})
         return {
                  previousPeriod: p,
                  previousTarget: target,
                  dayOfVisit:     r.dayOfVisit + 1,
-                 results:        Flatten({r.results, {{period: p, result: result}}}),
-                 debug:          Flatten({r.debug,   {{
-                                                        previousPeriod: r.previousPeriod,
-                                                        previousTarget: r.previousTarget,
-                                                        period:         p,
-                                                        dayOfVisit:     r.dayOfVisit,
-                                                        phosphate:      "Last Phosphate Measurement in Period"(p),
-                                                        insulin:        "Max Insulin Measurement in Period"(r.previousPeriod),
-                                                        result:         result
-                                                      }}})
+                 results:        if result then
+                                   Flatten({r.results, {}})
+                                 else
+                                   r.results,
+                 debug:          debug
                }
 
-/*define function "24-hour Periods with appropriate Calorie Intake"(periods List<Interval<DateTime>>):
-  (periods) p
-    let actual: "Calorie Intake in 24-hour period"(p)
-        target: "Calorie Target for 24-hour period"(p, TODO)
-      where 0.9 * target <= actual and actual <= 1.1 target*/
-
-// 24 h Periods
-
-// In this variant, the first period for each visit starts at the
-// start datetime of the visit and the other follow from that.
-/*define function "24-hour Periods during Visit"(visit VisitOccurrence):
-  (1) _
-    let periodInterval: convert visit to Interval<DateTime>,
-        dayDuration:    Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
-      return (Expand(periodInterval, dayDuration)) s
-               let shift: Interval[s, s + dayDuration)
-                 where shift included in periodInterval // TODO(moringenj): always true?
-                 return all shift*/
-
-// In this variant, each period start at 6:00 and ends 24 h later at
-// 5:59. All periods of this kind that fall within the visits are
-// initially generated even though some of those at the beginning and at
-// the end of the visit may not be used due to exclusion rules.
-define function "24-hour Periods during Visit"(visit VisitOccurrence):
-  (1) _
-    let periodInterval:   convert visit to Interval<DateTime>,
-        periodStartDay:   date from start of periodInterval,
-        periodEnd:        end of periodInterval,
-        firstPeriodStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
-        dayDuration:      Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
-      return if firstPeriodStart before periodEnd then
-               (Expand(Interval[firstPeriodStart, periodEnd], dayDuration)) s
-                 let period: Interval[s, s + dayDuration)
-                   where period included in periodInterval
-                   return all period
-             else
-               {}
-
-define "24-hour Periods during Visits":
-  (elm."Intensive Care Visits in Review Period") v
-    let periods: "24-hour Periods during Visit"(v)
-      where Exists(periods)
-      return all periods
-
-define "24-hour Periods with appropriate Calorie Intake during Visits":
-  "24-hour Periods during Visits" periods
-    return all ("24-hour Periods with Results"(periods).results) r
-                 where (r as Tuple{result Boolean, period Interval<DateTime>}).result
-                 return all (r as Tuple{result Boolean, period Interval<DateTime>}).period
-
-define "24-hour Periods":
-  Flatten("24-hour Periods during Visits")
-
-define "24-hour Periods with appropriate Calorie Intake":
-  Flatten("24-hour Periods with appropriate Calorie Intake during Visits")
-
-/*define debug:
-  ("24-hour Periods during Visits") periods
-    return all "24-hour Periods with appropriate Calorie Intake"(periods)*/
+define function "24-hour Periods with appropriate Calorie Intake"(periods List<Interval<DateTime>>):
+  "24-hour Periods with Results"(periods).results
 
 // Quality Indicator
 
-define "Is in Initial Population":
-      Exists(elm."Intensive Care Visits in Review Period")
-  and (elm."Age at Start of Review Period" >= 18)
+define function "Is in Initial Population"(visit VisitOccurrence):
+  AgeInYearsAt(convert visit to DateTime) >= 18
 
-define "24-hour Periods Results":
-  (T."24-hour Periods in Visits") periods
-    return all (periods) p
-                 let numerator:   Count(("24-hour Periods with appropriate Calorie Intake") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
-                     denominator: Count(("24-hour Periods") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
-                   return all {
-                     period:      p as Interval<DateTime>,
-                     numerator:   numerator,
-                     denominator: denominator,
-                     qi:          if "Is in Initial Population" then
-                                    numerator / denominator
-                                  else
-                                    null
-                   }
+// TODO(moringenj): Use contraindication to enteral feeding
+define "Visit Results":
+  (T."Visits with 24-hour Periods") visitWithPeriods
+    let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
+        goodPeriods:                 "24-hour Periods with appropriate Calorie Intake"(visitWithPeriods.allPeriods)
+      return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
+                   return all elm."Period Result"(
+                     period,
+                     inInitialPopulationForVisit,
+                     Count((goodPeriods) p where p includes period),
+                     1
+                   )
 
-define Result:
-  {
-    patient:      Patient,
-    reviewPeriod: elm."Review Period",
-    periods:      Flatten("24-hour Periods Results")
-  }
-
-define debugResult:
-  {
-  /*insulin: "Insulin Exposures" e return all e, //OMOPFunctions.ToQuantity(e)
-    co2: "CO2 Production Rate Measurements" m return all {t: m.measurementDatetime, v: convert m to Quantity} sort by t,
-    mco2: Median("CO2 Production Rate Measurements" m return convert m to Quantity),
-  w: elm."Most Recent Body Weight Measurement",
-  h: elm."Most Recent Body Height Measurement"*/
-  r: "Renal Replacement Therapy Procedures" m return all m
-  }
+define Result: elm."Overall Result"(Patient, "Visit Results")

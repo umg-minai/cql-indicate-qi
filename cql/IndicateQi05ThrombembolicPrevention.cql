@@ -39,47 +39,33 @@ define function "Anticoagulation Drug Exposures during Period"(period Interval<D
 define function "24-hour Period with Conforming Medication"(period Interval<DateTime>):
   Exists("Anticoagulation Drug Exposures during Period"(period))
 
-define "24-hour Periods with conforming Medication during Visits":
-  T."24-hour Periods in Visits" periods
-    return all Flatten({
-      { First(periods) }, // First period always counts as conforming
-      (Tail(periods)) p
-        where "24-hour Period with Conforming Medication"(p)
-        return all p
-    })
-
-define "24-hour Periods":
-  Flatten(T."24-hour Periods in Visits")
-
-define "24-hour Periods with Conforming Medication":
-  Flatten("24-hour Periods with conforming Medication during Visits")
+define function "24-hour Periods with conforming Medication"(periods List<Interval<DateTime>>):
+  Flatten({
+    { First(periods) }, // First period always counts as conforming
+    (Tail(periods)) p
+      where "24-hour Period with Conforming Medication"(p)
+      return all p
+  })
 
 // Quality Indicator
 
-define "Is in Initial Population":
-      Exists(elm."Intensive Care Visits in Review Period")
-  and (elm."Age at Start of Review Period" >= 18)
+define function "Is in Initial Population"(visit VisitOccurrence):
+  AgeInYearsAt(convert visit to DateTime) >= 18
 
-define "24-hour Periods Results":
-  (T."24-hour Periods in Visits") periods
-    return all (periods) p
-                 let numerator:   Count(("24-hour Periods with Conforming Medication") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s),
-                     denominator: Count(("24-hour Periods") s
-                                          where (p as Interval<DateTime>) includes (s as Interval<DateTime>) return all s)
-                   return all {
-                     period:      p as Interval<DateTime>,
-                     numerator:   numerator,
-                     denominator: denominator,
-                     qi:          if "Is in Initial Population" then
-                                    numerator / denominator
-                                  else
-                                    null
-                   }
+define "Visit Results":
+  (T."Visits with 24-hour Periods") visitWithPeriods
+    let visit:                       visitWithPeriods.visit,
+        inInitialPopulationForVisit: "Is in Initial Population"(visit),
+        periods:                     visitWithPeriods.allPeriods,
+        goodPeriods:                 "24-hour Periods with conforming Medication"(periods)
+      // TODO(moringenj): The weird as List<...> expressions are needed to work
+      //                  around a bug in the type inference of the CQL engine
+      return all (periods as List<Interval<DateTime>>) period
+                   return all elm."Period Result"(
+                     period,
+                     inInitialPopulationForVisit,
+                     Count((goodPeriods) s where s during period),
+                     Count((periods)     s where (s as Interval<DateTime>) during period)
+                   )
 
-define Result:
-  {
-    patient:      Patient,
-    reviewPeriod: elm."Review Period",
-    periods:      Flatten("24-hour Periods Results")
-  }
+define Result: elm."Overall Result"(Patient, "Visit Results")

@@ -42,7 +42,7 @@ library "{library_name}"
 include IndicateQiElements called E
 
 """)
-        for concept_name, concept_id in entries.items():
+        for concept_name, concept_id in sorted(entries.items(), key=lambda x: x[0]):
             file.write(f"code \"{concept_name}\": '{concept_id}' from E.OMOPSV\n")
         file.write(f"\nconcept \"{concept_definition_name}\": {{")
         is_first = True

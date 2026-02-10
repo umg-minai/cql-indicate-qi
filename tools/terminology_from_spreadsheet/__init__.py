@@ -6,7 +6,10 @@ def write_drugs_to_file(drugs_dataframe,
                         filename,
                         library_name,
                         concept_definition_name,
-                        source_description="minimal_data_dictionary.xlsx"):
+                        source_description="minimal_data_dictionary.xlsx",
+                        extra_entries=None):
+    if extra_entries is None:
+        extra_entries = {}
     print(f"Generating library {library_name}")
 
     entries = dict()
@@ -32,6 +35,8 @@ def write_drugs_to_file(drugs_dataframe,
             unique_name = find_unique_name(concept_name)
             entries[unique_name] = omop_concept_id
 
+    entries.update(extra_entries)
+
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically from
 // {source_description}
@@ -54,13 +59,21 @@ include IndicateQiElements called E
             file.write(f"\n  \"{concept_name}\"")
         file.write("\n}\n")
 
-def generate_library_for_category(drugs_dataframe, subcategory, library_name, concept_definition_name, source_name):
+def generate_library_for_category(drugs_dataframe,
+                                  subcategory,
+                                  library_name,
+                                  concept_definition_name,
+                                  source_name,
+                                  extra_entries=None):
+    if extra_entries is None:
+        extra_entries = {}
     drugs = drugs_dataframe[drugs_dataframe['subcategory'] == subcategory]
     write_drugs_to_file(drugs,
                         f"../../cql/{library_name}.cql",
                         library_name,
                         concept_definition_name,
-                        source_description=f"rows with subcategory '{subcategory}' in 'drugs' table in {source_name}")
+                        source_description=f"rows with subcategory '{subcategory}' in 'drugs' table in {source_name}",
+                        extra_entries = extra_entries)
 
 
 spreadsheet_filename = '/home/jan/Downloads/minimal_data_dictionary.xlsx'
@@ -77,4 +90,5 @@ generate_library_for_category(data_frame,
                               "Anticoagulants",
                               'AnticoagulationDrugs',
                               'Anticoagulation Drugs',
-                              source_name)
+                              source_name,
+                              extra_entries = { 'Certoparin': 19016072 })

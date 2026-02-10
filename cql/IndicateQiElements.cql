@@ -166,5 +166,34 @@ define function "Measurements with Neighbors"(measurements List<Measurement>):
                         })
     }).results
 
+// Quality Indicator Result Formatting
+
+define function "Period Result"(period                Interval<DateTime>,
+                                isInInitialPopulation Boolean,
+                                numerator             Integer,
+                                denominator           Integer):
+  {
+    period:      period,
+    numerator:   numerator,
+    denominator: denominator,
+    qi:          if isInInitialPopulation then
+                   numerator / denominator
+                 else
+                   null
+  }
+
+define function "Overall Result"(
+  patient              Person,
+  periodResultsByVisit List<List<Tuple{period      Interval<DateTime>,
+                                       numerator   Integer,
+                                       denominator Integer,
+                                       qi          Decimal}>>
+):
+  {
+    patient:      patient,
+    reviewPeriod: "Review Period",
+    periods:      Flatten(periodResultsByVisit)
+  }
+
 
 // vim: filetype=cql

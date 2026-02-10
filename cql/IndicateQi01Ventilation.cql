@@ -137,11 +137,31 @@ define function "PaO2/FiO2 LOCF"(targetTime DateTime):
           where convert m to DateTime same hour or before targetTime
           return all m)
 
+define "Usable Tidal Volume Measurements":
+  [Measurement: "Tidal Volume Measurement"] m
+    where     if m.unitConcept is null then
+                // TODO(moringenj): include the measurement in the message once we have ToString for Measurement
+                Message(false, true, '400', 'Warning', 'Tidal volume measurement does not have a unit')
+              else
+                true
+          and if m.valueAsNumber is null then
+                Message(false, true, '400', 'Warning', 'Tidal volume measurement does not have a numeric value')
+              else
+                true
+          and if (convert (convert m to Quantity) to 'mL').value is null then
+                Message(false, true, '400', 'Warning',
+                        'Tidal volume measurement has unit "'
+                        + (convert m to Quantity).unit
+                        + '" but must convertible to "mL"')
+              else
+                true
+    return all m
+    sort by measurementDatetime desc
+
 define function "Tidal Volume LOCF"(targetTime DateTime):
-  First([Measurement: "Tidal Volume Measurement"] m
-          where convert m to DateTime same hour or before targetTime
-          return all m
-          sort by measurementDatetime desc)
+  First(("Usable Tidal Volume Measurements") m
+          where m same hour or before targetTime
+          return all m)
 
 /*define "PaO2 Measurements":
   [Measurement: "PaO2 Measurement"]*/
@@ -181,15 +201,9 @@ define function "Recommended PEEP for PaO2"(peepTime DateTime):
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
     let tidalVolumeQuantity: convert tidalVolume to Quantity,
-        tidalVolumeValue:    if tidalVolumeQuantity is null then // TODO(moringenj): hack for MIMIC
-                               tidalVolume.valueAsNumber
-                             else
-                               (convert tidalVolumeQuantity to 'mL').value,
+        tidalVolumeValue:    (convert tidalVolumeQuantity to 'mL').value,
         idwValue:            elm."Ideal Body Weight Measured or Computed".value
-      return if tidalVolumeValue is null then
-               Message(null, true, '400', 'Error', 'Tidal volume Unit is "' + tidalVolumeQuantity.unit + '" but must convertible to "mL"')
-             else
-               tidalVolumeValue in Interval[4 * idwValue, 8 * idwValue]
+      return tidalVolumeValue in Interval[4 * idwValue, 8 * idwValue]
 
 /*define "Effective Plateau Pressure":
   if "Ventilation Mode" ~ "Volume Driven Ventilation" then

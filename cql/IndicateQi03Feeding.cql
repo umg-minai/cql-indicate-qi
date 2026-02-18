@@ -2,7 +2,11 @@
 // Version  1.0
 //
 // Description:
-//   Early enteral nutrition and calorie target met.
+//   Early nutrition of critically ill patients is associated with an
+//   improved outcome.  It should start within 24 to 48 hours of admission
+//   and should be enough to meet individuals daily calorie requirement.
+//   The calorie target is calculated by the insulin requirement and/or
+//   phosphate measurements in a blood sample on a daily basis.
 //
 // Numerator:
 //   For each 24 hour period starting at admission + 24 hours the calorie
@@ -29,7 +33,7 @@ include InsulinDrugs
 // unit [cal]
 code "Energy Requirement": '4022415' from elm.OMOPSV
 
-code "Contraindication to Enteral Feeding": '4141768' from elm.OMOPSV
+code "Contraindication to Enteral Feeding": '4141768' from elm.OMOPSV // observation
 
 // unit [cal]
 code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV

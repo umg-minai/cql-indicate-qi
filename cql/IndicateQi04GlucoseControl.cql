@@ -2,7 +2,11 @@
 // Version  1.0
 //
 // Description:
-//  Control of appropriate glucose levels
+//   The blood glucose levels of critically ill patients should be kept
+//   within an acceptable range.  Regular measurements, at least once
+//   per shift and possibly corrective treatments are required.  The type
+//   of treatment differs depending on the type of derangement of blood
+//   glucose disorder, and is not included in this quality indicator.
 //
 // Numerator:
 //  (All ICU patients) - (all patients with <= 10 mmol/l glucose )

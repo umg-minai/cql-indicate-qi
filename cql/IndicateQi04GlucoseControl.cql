@@ -31,19 +31,35 @@ parameter "Acceptable Glucose Levels"
 parameter "Time between consecutive non-Acceptable Glucose Levels"
   default 2 hours
 
-// Not used: code "Glucose": '3020491' from elm.OMOPSV    // Glucose [Moles/volume] in Blood
-code "Glucose in Serum":              '3004501' from elm.OMOPSV
-code "Glucose in Blood":              '3000483' from elm.OMOPSV
-code "Glucose in Venous Blood":       '3033408' from elm.OMOPSV
-code "Glucose in Mixed Venous Blood": '1092148' from elm.OMOPSV
-code "Glucose in Capillary Blood":    '3034962' from elm.OMOPSV
+code "Glucose in Serum (Mass/volume)":                          '3004501' from elm.OMOPSV
+code "Glucose in Blood (Mass/volume)":                          '3000483' from elm.OMOPSV
+code "Glucose in Venous Blood (Mass/volume)":                   '3033408' from elm.OMOPSV
+code "Glucose in Mixed Venous Blood (Mass/volume)":             '1092148' from elm.OMOPSV // TODO(jmoringe): this is no longer in the minimal dataset, why
+code "Glucose in Capillary Blood by Glucometer (Mass/volume)":  '3034962' from elm.OMOPSV // TODO(jmoringe): this is no longer in the minimal dataset, why
+// Added to minimal dataset:
+
+code "Glucose in Arterial Blood (Mass/volume)":                 '3031266' from elm.OMOPSV
+
+code "Glucose in Capillary Blood (Mass/volume)":                '3004077' from elm.OMOPSV
+code "Glucose in Blood (Moles/volume)":                         '3020491' from elm.OMOPSV
+code "Glucose in Capillary Blood by Glucometer (Moles/volume)": '3001501' from elm.OMOPSV
+code "Glucose in Mixed Venous Blood (Moles/volume)":            '1761753' from elm.OMOPSV
+code "Glucose in Serum or Plasma (Moles/volume)":               '3013826' from elm.OMOPSV
+code "Glucose in Venous Blood (Moles/volume)":                  '3038515' from elm.OMOPSV
 
 concept "Glucose Level": {
-  "Glucose in Serum",
-  "Glucose in Blood",
-  "Glucose in Venous Blood",
-  "Glucose in Mixed Venous Blood",
-  "Glucose in Capillary Blood"
+  "Glucose in Serum (Mass/volume)",
+  "Glucose in Blood (Mass/volume)",
+  "Glucose in Venous Blood (Mass/volume)",
+  "Glucose in Mixed Venous Blood (Mass/volume)",
+  "Glucose in Capillary Blood by Glucometer (Mass/volume)",
+  "Glucose in Arterial Blood (Mass/volume)",
+  "Glucose in Capillary Blood (Mass/volume)",
+  "Glucose in Blood (Moles/volume)",
+  "Glucose in Capillary Blood by Glucometer (Moles/volume)",
+  "Glucose in Mixed Venous Blood (Moles/volume)",
+  "Glucose in Serum or Plasma (Moles/volume)",
+  "Glucose in Venous Blood (Moles/volume)"
 }
 
 context Patient
@@ -52,7 +68,7 @@ context Patient
 
 define "Valid Glucose Measurements":
   [Measurement: "Glucose Level"] m // TODO(moringenj): restrict to review period?
-    // Some measurements in the database lack at least of these properties
+    // Some measurements in the database lack at least one of these properties.
     where not m.valueAsNumber is null and not m.unitConcept is null
     return all m
     sort by measurementDatetime

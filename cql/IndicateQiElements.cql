@@ -53,6 +53,7 @@ context Patient
 define "Age at Start of Review Period":
   AgeInYearsAt(date from start of "Review Period")
 
+// TODO(moringej): time-dependent: most recent measurement before a given point in time
 define "Most Recent Body Height Measurement":
   First([Measurement: "Body Height"] m
           return all m
@@ -63,11 +64,13 @@ define "Most Recent Body Weight Measurement":
           return all m
           sort by measurementDatetime desc)
 
+// TODO(moringej): time-dependent: most recent measurement before a given point in time
 define "Most Recent Ideal Body Weight Measurement":
   First([Measurement: "Ideal Body Weight"] m
           return all m
           sort by measurementDatetime desc)
 
+//define function "Ideal Body Weight Measured or Computed"(targetTime DateTime):
 define "Ideal Body Weight Measured or Computed":
   case
     when "Most Recent Ideal Body Weight Measurement" is not null then

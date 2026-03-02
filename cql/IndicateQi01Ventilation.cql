@@ -69,9 +69,10 @@ concept "PEEP Measurement": {
 
 code "Plateau Pressure Measurement": '44782825' from elm.OMOPSV
 
- // Unit cmH2O
+// TODO(moringenj): could be some other unit of pressure measurement
+// Unit cmH2O
 code "Inspiratory Pressure Setting": '4215838' from elm.OMOPSV
- // Unit mmHg, CAVE different units, has to be converted to unit cmH2O
+// Unit mmHg, CAVE different units, has to be converted to unit cmH2O
 code "Peak Inspiratory Pressure Measurement": '4101694' from elm.OMOPSV
 
 code "Tidal Volume Inspiratory Measurement":                                                                                '44782826' from elm.OMOPSV
@@ -173,6 +174,7 @@ define "PaO2/FiO2 (Horowitz index) Measurements":
     return all m
     sort by measurementDatetime desc
 
+// TODO: comment why not sorted like the others
 define "PEEP Measurements":
   [Measurement: "PEEP Measurement"] m
     return all m
@@ -213,28 +215,31 @@ define "ARDS Conditions":
 // Last Observation Carried Forward
 define function "PaO2 LOCF"(targetTime DateTime):
   First("PaO2 Measurements" m
-          // TODO(moringenj): what is the correct logic and acceptable
-          //                  precision for comparing times in this context?
+          // TODO(moringenj): change this to available precision
           where (convert m to DateTime) same hour or before targetTime
           return all m)
 
 define function "FiO2 LOCF"(targetTime DateTime):
   First("FiO2 Measurements" m
+  // TODO(moringenj): change this to available precision
           where (convert m to DateTime) same hour or before targetTime
           return all m)
 
 define function "PaO2/FiO2 LOCF"(targetTime DateTime):
   First("PaO2/FiO2 (Horowitz index) Measurements" m
+          // TODO(moringenj): change this to available precision
           where (convert m to DateTime) same hour or before targetTime
           return all m)
 
 define function "Plateau Pressure Measurement LOCF"(targetTime DateTime):
   First("Plateau Pressure Measurements" m
+  // TODO(moringenj): change this to available precision
           where (convert m to DateTime) same hour or before targetTime
           return all m)
 
 define function "Peak Inspiratory Pressure LOCF"(targetTime DateTime):
   First("Peak Inspiratory Pressure Measurements" m
+  // TODO(moringenj): change this to available precision
           where m.datetime same hour or before targetTime
           return all m.quantity)
 
@@ -294,7 +299,7 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
                    return if (duration in hours between paO2Time and peepTime) < 6 then
                             paO2 / fiO2
                           else
-                            300 'mm[Hg]'
+                            300 'mm[Hg]' // TODO(moringenj): explain this
 
 define function "Is mild ARDS"("PaO2/FiO2" Quantity):
   "PaO2/FiO2" > 200 'mm[Hg]'
@@ -315,7 +320,7 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
         idwValue:            elm."Ideal Body Weight Measured or Computed".value
       return tidalVolumeValue in Interval[4 * idwValue, 8 * idwValue]
 
-define function "Effective Plateau Pressure"(peepMeasurement Measurement):
+define function "Effective Plateau Pressure"(peepMeasurement Measurement): // TODO(moringenj): pass only time
   (1) _
     let peepMeasurementTime:        convert peepMeasurement to DateTime,
         ventilationMode:            "Ventilation Mode"(peepMeasurementTime),

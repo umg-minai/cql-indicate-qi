@@ -1,5 +1,13 @@
 // This file has been generated automatically from
-// rows with subcategory 'Other drugs' in 'drugs' table in minimal_data_dictionary.xlsx
+// https://raw.githubusercontent.com/indicate-eu/data-dictionary-content/refs/heads/main/docs/data.json
+// Concept set(s)
+// * Insulin Aspart [modified 2026-02-12]
+// * Insulin Aspart, Human [modified 2026-02-12]
+// * Insulin Degludec [modified 2026-02-12]
+// * Insulin Detemir [modified 2026-02-12]
+// * Insulin Glargine [modified 2026-02-12]
+// * Insulin Glulisine, Human [modified 2026-02-12]
+
 // Do not edit
 
 library "InsulinDrugs"

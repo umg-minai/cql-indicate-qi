@@ -1,5 +1,37 @@
 // This file has been generated automatically from
-// rows with subcategory 'Anticoagulants' in 'drugs' table in minimal_data_dictionary.xlsx
+// https://raw.githubusercontent.com/indicate-eu/data-dictionary-content/refs/heads/main/docs/data.json
+// Concept set(s)
+// * Acenocoumarol [modified 2026-02-12]
+// * Apixaban [modified 2026-02-12]
+// * Argatroban [modified 2026-02-12]
+// * Bemiparin [modified 2026-02-12]
+// * Betrixaban [modified 2026-02-12]
+// * Bivalirudin [modified 2026-02-12]
+// * Clorindione [modified 2026-02-12]
+// * Dabigatran Etexilate [modified 2026-02-12]
+// * Dalteparin [modified 2026-02-12]
+// * Danaparoid [modified 2026-02-12]
+// * Desirudin [modified 2026-02-12]
+// * Dicumarol [modified 2026-02-12]
+// * Edoxaban [modified 2026-02-12]
+// * Enoxaparin [modified 2026-02-12]
+// * Fluindione [modified 2026-02-12]
+// * Fondaparinux [modified 2026-02-12]
+// * Heparin [modified 2026-02-12]
+// * Lepirudin [modified 2026-02-12]
+// * Melagatran [modified 2026-02-12]
+// * Nadroparin [modified 2026-02-12]
+// * Parnaparin [modified 2026-02-12]
+// * Phenindione [modified 2026-02-12]
+// * Phenprocoumon [modified 2026-02-12]
+// * Reviparin [modified 2026-02-12]
+// * Rivaroxaban [modified 2026-02-12]
+// * Sulodexide [modified 2026-02-12]
+// * Tinzaparin [modified 2026-02-12]
+// * Tioclomarol [modified 2026-02-12]
+// * Warfarin [modified 2026-02-12]
+// * Ximelagatran [modified 2026-02-12]
+
 // Do not edit
 
 library "AnticoagulationDrugs"
@@ -221,13 +253,10 @@ code "dicumarol 50 MG Oral Capsule": '19108503' from E.OMOPSV
 code "dicumarol 50 MG Oral Tablet": '19076408' from E.OMOPSV
 code "edoxaban 15 MG Delayed Release Oral Tablet": '36787912' from E.OMOPSV
 code "edoxaban 15 MG Disintegrating Oral Tablet": '35141149' from E.OMOPSV
-code "edoxaban 15 MG Oral Tablet": '45892850' from E.OMOPSV
 code "edoxaban 30 MG Delayed Release Oral Tablet": '36787920' from E.OMOPSV
 code "edoxaban 30 MG Disintegrating Oral Tablet": '35137111' from E.OMOPSV
-code "edoxaban 30 MG Oral Tablet": '45892856' from E.OMOPSV
 code "edoxaban 60 MG Delayed Release Oral Tablet": '36787907' from E.OMOPSV
 code "edoxaban 60 MG Disintegrating Oral Tablet": '35137677' from E.OMOPSV
-code "edoxaban 60 MG Oral Tablet": '45892860' from E.OMOPSV
 code "enoxaparin 10000 IU/ML Injectable Solution": '35869699' from E.OMOPSV
 code "enoxaparin 60 MG/ML Injectable Solution": '19104488' from E.OMOPSV
 code "enoxaparin sodium 100 MG/ML Injectable Solution": '40160948' from E.OMOPSV
@@ -811,13 +840,10 @@ concept "Anticoagulation Drugs": {
   "dicumarol 50 MG Oral Tablet",
   "edoxaban 15 MG Delayed Release Oral Tablet",
   "edoxaban 15 MG Disintegrating Oral Tablet",
-  "edoxaban 15 MG Oral Tablet",
   "edoxaban 30 MG Delayed Release Oral Tablet",
   "edoxaban 30 MG Disintegrating Oral Tablet",
-  "edoxaban 30 MG Oral Tablet",
   "edoxaban 60 MG Delayed Release Oral Tablet",
   "edoxaban 60 MG Disintegrating Oral Tablet",
-  "edoxaban 60 MG Oral Tablet",
   "enoxaparin 10000 IU/ML Injectable Solution",
   "enoxaparin 60 MG/ML Injectable Solution",
   "enoxaparin sodium 100 MG/ML Injectable Solution",

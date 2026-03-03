@@ -24,9 +24,9 @@ include TimePeriods called T
 // Pain Assessment
 
 // BPS (Behavior Pain Scale) codes
-code "BPS Assessment (Procedure)": '?' from elm.OMOPSV
-code "BPS Score (Measurement)": '?' from elm.OMOPSV
-code "BPS Scale (Measurement)": '?' from elm.OMOPSV
+// code "BPS Assessment (Procedure)": '?' from elm.OMOPSV
+// code "BPS Score (Measurement)": '?' from elm.OMOPSV
+// code "BPS Scale (Measurement)": '?' from elm.OMOPSV
 
 // NPRS (Numeric (Pain) Rating Scale) codes
 //code "NPRS Assessment (Procedure)": '37174733' from elm.OMOPSV

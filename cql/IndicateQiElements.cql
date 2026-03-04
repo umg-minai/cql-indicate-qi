@@ -19,7 +19,7 @@ code "IcuDischargeDate": '36659649' from OMOPSV     // Intensive care unit (ICU)
 
 code "Intensive Care": '32037' from OMOPSV
 
-code "Body Height": '607590' from OMOPSV
+code "Body Height": '3036277' from OMOPSV
 
 code "Body Weight": '4099154' from OMOPSV
 

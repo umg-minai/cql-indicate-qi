@@ -88,7 +88,9 @@ define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateT
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Inadvertent Extubation Events" e
               where convert e to DateTime during period)
-  or Exists("Periods without Ventilation" p where p overlaps period)
+  or Exists("Periods without Ventilation" p
+              where     p overlaps period
+                    and duration in minutes of (convert p to Interval<DateTime>) >= 5)
 
 // Quality Indicator
 
@@ -113,6 +115,11 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit)
       return all (visitWithPeriods.periods) period
+                   // TODO(moringenj):
+                   // start der beatmung mind. 48 h vor ende der periode -> periode bruecksichtigen sonst null
+                   // -> Sebastian fragen, ob das ok ist
+                   // muss irgendwann während mechanical ventilation intubiert; nicht unbedingt durchgehend
+                   // -> Sebastian fragen
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,

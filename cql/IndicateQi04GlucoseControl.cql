@@ -71,10 +71,11 @@ define function "Convert g/L to mol/L"(quantity Quantity):
       return Quantity{value: 1/18 * scaled.value, unit: 'mmol/L'}
 
 define function "Ensure Glucose Level in mol/L"(glucoseLevel Quantity):
+  // TODO(moringenj): funktioniert das nicht? hatte ich das schon probiert?
   case
-    when Matches(glucoseLevel.unit, '.*g/.*L') then
+    when convert glucoseLevel to 'g/L' is not null then // Matches(glucoseLevel.unit, '.*g/.*L') then
       "Convert g/L to mol/L"(glucoseLevel)
-    when Matches(glucoseLevel.unit, '.*mol/.*L') then
+    when convert glucoseLevel to 'mol/L' is not null then // Matches(glucoseLevel.unit, '.*mol/.*L') then
       glucoseLevel
     else
       Message(null, true, '400', 'Error', 'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L" or convertible to "g/L"')
@@ -126,8 +127,8 @@ define function "Successful Glucose Control"(previousMeasurement Measurement,
                    nextMeasurement,
                    "Time between consecutive non-Acceptable Glucose Levels"
                  )
-             and (   "Is Acceptable Glucose Level"(convert nextMeasurement to Quantity)
-                  or "Acceptable Follow-up Glucose Level"(
+             and (   //"Is Acceptable Glucose Level"(convert nextMeasurement to Quantity)
+                     "Acceptable Follow-up Glucose Level"(
                        convert measurement     to Quantity,
                        convert nextMeasurement to Quantity
                      ))))
@@ -162,7 +163,7 @@ define function "Conforming Glucose Measurements"(measurements List<Tuple{previo
 
 define function "Measurements during Shift Plus Neighbors"(shift Interval<DateTime>):
   (1) _
-    let measurementsWithNeighbors: elm."Measurements with Neighbors"("Valid Glucose Measurements")
+    let measurementsWithNeighbors: elm."Measurements with Neighbors"("Valid Glucose Measurements") // TODO(moringenj): cache this
       return (measurementsWithNeighbors) m
                where (convert m.current to DateTime) during shift
                return all m
@@ -195,6 +196,7 @@ define "Visit Results":
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
         shifts:                      T."Shifts during Period"(visitInterval),
         goodShifts:                  "Conforming Shifts in Visit"(shifts)
+      // TODO(moringenj): change definition to also consider 24-hour intervals instead of the whole visit/observation period
       return all (visitWithPeriods.periods) period
                    return all elm."Period Result"(
                      period,

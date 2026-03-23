@@ -44,12 +44,7 @@ concept "Trial of Spontaneous Breathing": {
 
 code "Normal Extubation Procedure": '4148972' from elm.OMOPSV
 
-code "Inadvertent Extubation Procedure": '4231838' from elm.OMOPSV
-
-concept "Extubation": {
-  "Normal Extubation Procedure",
-  "Inadvertent Extubation Procedure"
-}
+code "Inadvertent Extubation Event": '4231838' from elm.OMOPSV
 
 context Patient
 
@@ -67,10 +62,16 @@ define "Trial of Spontaneous Breathing Procedures":
     sort by procedureDatetime
 
 define "Extubation Procedures":
-  [ProcedureOccurrence: "Extubation"] p
-    where convert p to Interval<DateTime> overlaps elm."Review Period"
+  [ProcedureOccurrence: "Normal Extubation Procedure"] p
+    where (convert p to Interval<DateTime>) overlaps elm."Review Period"
     return all p
     sort by procedureDatetime
+
+define "Inadvertent Extubation Events":
+  [Observation: "Inadvertent Extubation Event"] o
+    where o during elm."Review Period"
+    return all o
+    sort by observationDatetime
 
 define "Periods without Ventilation":
   I.SubtractFromInterval(elm."Review Period", "Ventilation Periods")
@@ -82,6 +83,8 @@ define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateT
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Extubation Procedures" p
               where convert p to Interval<DateTime> overlaps period)
+  or Exists("Inadvertent Extubation Events" e
+              where convert e to DateTime during period)
   or Exists("Periods without Ventilation" p where p overlaps period)
 
 // Quality Indicator

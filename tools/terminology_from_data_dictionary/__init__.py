@@ -58,8 +58,9 @@ def write_drugs_to_file(concept_sets,
     concept_sets_comments = "// Concept set(s)\n"
     for concept_set in concept_sets:
         concept_set_name = concept_set.get("name")
+        concept_set_size = len(concept_set.get("expression", {}).get("items"))
         concept_set_modification_date = concept_set.get("modifiedDate")
-        concept_sets_comments += f"// * {concept_set_name} [modified {concept_set_modification_date}]\n"
+        concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} entries) [modified {concept_set_modification_date}]\n"
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically from
 // {URL}
@@ -72,8 +73,8 @@ include IndicateQiElements called E
 
 """)
         entries = {}
-        for drug in concept_sets:
-            items = drug.get("expression", {}).get("items")
+        for concept_set in concept_sets:
+            items = concept_set.get("expression", {}).get("items")
             for item in items:
                 concept = item.get("concept")
                 concept_id = concept.get("conceptId")

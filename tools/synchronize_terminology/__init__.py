@@ -14,7 +14,7 @@ def retrieve_cql_data():
     try:
         process = subprocess.run(['java',
                                   '-jar', '/home/jan/code/cql/cql-on-omop/target/cql-on-omop-1.0-SNAPSHOT.jar',
-                                  'terminology', '--omop-version', 'v5.4.MIMIC',
+                                  'terminology', '--omop-version', 'v5.4',
                                   '-p', '5432', '-u', 'postgres', '--password', 'yourpassword', '-d', 'ohdsi',
                                   '-I', '/home/jan/code/indicate/quality-indicators/cql/',
                                   'Main'],

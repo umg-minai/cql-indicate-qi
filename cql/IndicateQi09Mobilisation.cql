@@ -20,7 +20,7 @@ include IndicateQiElements called elm
 
 code Mobilisation: '4327195' from elm.OMOPSV
 
-code "Order to not Mobilise": '4266013' from elm.OMOPSV
+code "Order to not Mobilise": '2100000008' from elm.OMOPSV
 
 context Patient
 

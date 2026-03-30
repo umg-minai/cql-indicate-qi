@@ -5,10 +5,6 @@
 //
 //   Critically ill patients on an intensive care unit or their
 //   relatives should be consulted regarding care/treatment plans.
-//
-// Numerator:
-//
-// Denominator:
 
 library "IndicateQi08AdvancCarePlan" version '1.0.0'
 

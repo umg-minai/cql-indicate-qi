@@ -7,15 +7,6 @@
 //   per shift and possibly corrective treatments are required.  The type
 //   of treatment differs depending on the type of derangement of blood
 //   glucose disorder, and is not included in this quality indicator.
-//
-// Numerator:
-//  (All ICU patients) - (all patients with <= 10 mmol/l glucose )
-//  (includes all patients with glucose > 10 mmol/l and all patients without
-//  any glucose measurement)
-//
-// Denominator:
-//  All patients admitted to the intensive care unit during
-//  the period reviewed.
 
 library "IndicateQi04GlucoseControl" version '1.0.0'
 

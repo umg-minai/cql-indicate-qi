@@ -10,11 +10,6 @@
 //   table).  The plateau pressure should be lower or equal 30 cmH2O.  The
 //   inspiratory pressure difference (driving pressure, Pdelta) should be
 //   lower or equal 14 cmH2O.
-//
-// Numerator:
-//
-// Denominator:
-//
 
 library "IndicateQi01Ventilation" version '1.0.0'
 

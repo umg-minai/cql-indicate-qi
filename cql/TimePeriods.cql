@@ -84,17 +84,7 @@ define function "24-hour Periods during Visits"(visits List<VisitOccurrence>):
 define "24-hour Periods in Visits":
   "24-hour Periods during Visits"(E."Intensive Care Visits in Review Period")
 
-
-
-
-
-
-
-
-
-
-
-
+/// Visits
 
 define "Intensive Care Visits overlapping Review Period":
   E."Intensive Care Visits" v

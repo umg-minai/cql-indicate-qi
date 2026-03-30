@@ -6,7 +6,7 @@
 //   contributes significantly to morbidity and mortality among critically
 //   ill patients.  Pharmacologic thromboprophylaxis should reduce VTE.
 
-library "IndicateQi05ThrombembolicPrevention" version '1.0.0'
+library "IndicateQi05ThromboembolicPrevention" version '1.0.0'
 
 using OMOP version 'v5.4'
 

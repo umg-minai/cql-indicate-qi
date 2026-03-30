@@ -6,7 +6,7 @@
 //   Critically ill patients on an intensive care unit or their
 //   relatives should be consulted regarding care/treatment plans.
 
-library "IndicateQi08AdvancCarePlan" version '1.0.0'
+library "IndicateQi08AdvanceCarePlan" version '1.0.0'
 
 using OMOP version 'v5.4'
 

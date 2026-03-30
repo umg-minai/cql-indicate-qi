@@ -142,6 +142,7 @@ define function "Number of VAP in Period"(period Interval<DateTime>):
   )
 
 define function "VAP Incidence in Period"(period Interval<DateTime>):
+  // TODO(moringenj): explain "days" since really [0, 1]
   incidence(period,
             "Number of VAP in Period"(period),
             "Ventilation Days in Period"(period))
@@ -173,7 +174,7 @@ define "Visit Results":
                      period,
                      inInitialPopulationForVisit,
                      0,
-                     1
+                     1 // TODO(moringenj): infection → 1000 , else → 0
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")

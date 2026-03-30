@@ -51,6 +51,7 @@ define "Visit Results":
         periods:                     visitWithPeriods.allPeriods,
         goodPeriods:                 "24-hour Periods with conforming Medication"(periods)
       return all (periods) period
+                   // TODO(moringenj): skip first period instead of counting it as conforming
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,

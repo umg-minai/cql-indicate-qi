@@ -29,12 +29,8 @@ def generate_library_for_category(concept_sets,
                                   category,
                                   subcategory,
                                   library_name,
-                                  concept_definition_name,
-                                  extra_entries=None):
+                                  concept_definition_name):
     """Generates a CQL library for a specific drug category."""
-
-    if extra_entries is None:
-        extra_entries = {}
 
     def is_matching_concept_set(concept_set):
         en = concept_set.get("metadata", {}).get("translations", {}).get("en", {})
@@ -44,15 +40,13 @@ def generate_library_for_category(concept_sets,
     write_drugs_to_file(relevant_concept_sets,
                         f"../../cql/{library_name}.cql",
                         library_name,
-                        concept_definition_name,
-                        extra_entries)
+                        concept_definition_name)
 
 
 def write_drugs_to_file(concept_sets,
                         filename,
                         library_name,
-                        concept_definition_name,
-                        extra_entries):
+                        concept_definition_name):
     """Writes drug concepts to a CQL file."""
     print(f"Writing {len(concept_sets)} concept sets to {filename}")
     concept_sets_comments = "// Concept set(s)\n"
@@ -80,7 +74,6 @@ include IndicateQiElements called E
                 concept_id = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
                 entries[concept_name] = concept_id
-        entries |= extra_entries
 
         for concept_name, concept_id in sorted(entries.items(), key=lambda x: x[0]):
             file.write(f"code \"{concept_name}\": '{concept_id}' from E.OMOPSV\n")
@@ -116,8 +109,8 @@ def main():
                                   "Drug",
                                   'Anticoagulants',
                                   'AnticoagulationDrugs',
-                                  'Anticoagulation Drugs',
-                                  extra_entries={'Certoparin': 19016072})  # Example extra entry
+                                  'Anticoagulation Drugs')
+
     return None
 
 

@@ -75,12 +75,12 @@ include IndicateQiElements called E
                 concept_name = concept.get("conceptName")
                 entries[concept_name] = concept_id
 
-        for concept_name, concept_id in sorted(entries.items(), key=lambda x: x[0]):
+        for concept_name, concept_id in sorted(entries.items(), key=lambda x: x[0].lower()):
             file.write(f"code \"{concept_name}\": '{concept_id}' from E.OMOPSV\n")
 
         file.write(f"\nconcept \"{concept_definition_name}\": {{")
         is_first = True
-        for concept_name in sorted(entries.keys()):
+        for concept_name in sorted(entries.keys(), key=lambda x: x.lower()):
             if is_first:
                 is_first = False
             else:

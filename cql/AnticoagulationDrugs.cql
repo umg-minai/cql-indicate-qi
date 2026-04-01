@@ -31,6 +31,7 @@
 // * Tioclomarol (1 entries) [modified 2026-02-12]
 // * Warfarin (35 entries) [modified 2026-02-12]
 // * Ximelagatran (1 entries) [modified 2026-02-12]
+// * Certoparin (9 entries) [modified 2026-04-01]
 
 // Do not edit
 
@@ -62,7 +63,6 @@ code "Benzocaine 0.03 MG/MG / dexpanthenol 0.025 MG/MG / heparin 0.05 UNT/MG / M
 code "Benzocaine 60 MG / dexpanthenol 50 MG / heparin 200 UNT / Menthol 0.05 MG / prednisolone 2 MG / Vitamin B 12 0.4 MG Rectal Suppository": '40869058' from E.OMOPSV
 code "Benzocaine 900 MG / dexpanthenol 750 MG / heparin 2500 UNT / Menthol 30 MG / prednisolone 25 MG / Tyrothricin 10 MG / Vitamin B 12 5 MG Rectal Suppository": '40869057' from E.OMOPSV
 code "Benzocaine 900 MG / dexpanthenol 750 MG / heparin 2500 UNT / Menthol 30 MG / prednisolone 70 MG / Tyrothricin 10 MG / Vitamin B 12 5 MG Rectal Suppository": '41024776' from E.OMOPSV
-code "Certoparin": '19016072' from E.OMOPSV
 code "Citric Acid 0.37 MG/ML / heparin 2 UNT/ML / Sodium Chloride 9 MG/ML / Sodium Phosphate, Dibasic 4.3 MG/ML Injection": '44071751' from E.OMOPSV
 code "Citric Acid 1 MG/ML / Glucose 50 MG/ML / heparin 50 UNT/ML / Sodium Phosphate, Dibasic 4.1 MG/ML Injection": '44045916' from E.OMOPSV
 code "Clorindione 2 MG Oral Tablet": '40993001' from E.OMOPSV
@@ -208,6 +208,15 @@ code "bivalirudin 250 MG Injectable Suspension": '44059183' from E.OMOPSV
 code "bivalirudin 250 MG Injection": '19074279' from E.OMOPSV
 code "bivalirudin 250 MG Prefilled Syringe": '36888705' from E.OMOPSV
 code "bivalirudin 5 MG/ML Injection": '793488' from E.OMOPSV
+code "certoparin 10 UNT/ML Injectable Solution": '41243163' from E.OMOPSV
+code "certoparin 10 UNT/ML Prefilled Syringe": '40868520' from E.OMOPSV
+code "certoparin 10000 UNT/ML Injectable Solution": '43660807' from E.OMOPSV
+code "certoparin 6 UNT/ML Injectable Solution": '41212204' from E.OMOPSV
+code "certoparin 6000 UNT/ML / Dihydroergotamine 1 MG/ML Injectable Solution": '41149738' from E.OMOPSV
+code "certoparin 6000 UNT/ML Injectable Solution": '19016075' from E.OMOPSV
+code "certoparin 83.3 MG/ML Injectable Solution": '43714526' from E.OMOPSV
+code "certoparin 83.5 MG/ML Injectable Solution": '42712720' from E.OMOPSV
+code "certoparin sodium 10000 UNT/ML Prefilled Syringe": '42902725' from E.OMOPSV
 code "dabigatran etexilate 110 MG Oral Capsule": '35606208' from E.OMOPSV
 code "dabigatran etexilate 110 MG Oral Pellet": '1758804' from E.OMOPSV
 code "dabigatran etexilate 150 MG Oral Capsule": '40228154' from E.OMOPSV
@@ -649,7 +658,6 @@ concept "Anticoagulation Drugs": {
   "Benzocaine 60 MG / dexpanthenol 50 MG / heparin 200 UNT / Menthol 0.05 MG / prednisolone 2 MG / Vitamin B 12 0.4 MG Rectal Suppository",
   "Benzocaine 900 MG / dexpanthenol 750 MG / heparin 2500 UNT / Menthol 30 MG / prednisolone 25 MG / Tyrothricin 10 MG / Vitamin B 12 5 MG Rectal Suppository",
   "Benzocaine 900 MG / dexpanthenol 750 MG / heparin 2500 UNT / Menthol 30 MG / prednisolone 70 MG / Tyrothricin 10 MG / Vitamin B 12 5 MG Rectal Suppository",
-  "Certoparin",
   "Citric Acid 0.37 MG/ML / heparin 2 UNT/ML / Sodium Chloride 9 MG/ML / Sodium Phosphate, Dibasic 4.3 MG/ML Injection",
   "Citric Acid 1 MG/ML / Glucose 50 MG/ML / heparin 50 UNT/ML / Sodium Phosphate, Dibasic 4.1 MG/ML Injection",
   "Clorindione 2 MG Oral Tablet",
@@ -795,6 +803,15 @@ concept "Anticoagulation Drugs": {
   "bivalirudin 250 MG Injection",
   "bivalirudin 250 MG Prefilled Syringe",
   "bivalirudin 5 MG/ML Injection",
+  "certoparin 10 UNT/ML Injectable Solution",
+  "certoparin 10 UNT/ML Prefilled Syringe",
+  "certoparin 10000 UNT/ML Injectable Solution",
+  "certoparin 6 UNT/ML Injectable Solution",
+  "certoparin 6000 UNT/ML / Dihydroergotamine 1 MG/ML Injectable Solution",
+  "certoparin 6000 UNT/ML Injectable Solution",
+  "certoparin 83.3 MG/ML Injectable Solution",
+  "certoparin 83.5 MG/ML Injectable Solution",
+  "certoparin sodium 10000 UNT/ML Prefilled Syringe",
   "dabigatran etexilate 110 MG Oral Capsule",
   "dabigatran etexilate 110 MG Oral Pellet",
   "dabigatran etexilate 150 MG Oral Capsule",

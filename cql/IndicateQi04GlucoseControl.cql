@@ -163,8 +163,7 @@ define function "Conforming Glucose Measurements"(measurements List<Tuple{previo
 
 define function "Measurements during Shift Plus Neighbors"(shift Interval<DateTime>):
   (1) _
-    let measurementsWithNeighbors: (elm."Measurements with Neighbors"("Valid Glucose Measurements")
-                                    as List<Tuple{previous Measurement, current Measurement, next Measurement}>)
+    let measurementsWithNeighbors: elm."Measurements with Neighbors"("Valid Glucose Measurements")
       return (measurementsWithNeighbors) m
                where (convert m.current to DateTime) during shift
                return all m

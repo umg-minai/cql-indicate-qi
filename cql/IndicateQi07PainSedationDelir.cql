@@ -91,10 +91,7 @@ define function "Measurements during Shift with Neighbors"(
     measurements List<Measurement>,
     shift        Interval<DateTime>
   ):
-  // The weird as List<...> is due to a bug in the type inference of the CQL
-  // engine.
-  (elm."Measurements with Neighbors"(measurements)
-   as List<Tuple{previous Measurement, current Measurement, next Measurement}>) m
+  (elm."Measurements with Neighbors"(measurements)) m
     where (convert m.current to DateTime) during shift
     return all m
 

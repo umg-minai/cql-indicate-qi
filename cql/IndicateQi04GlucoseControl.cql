@@ -188,7 +188,7 @@ define function "Conforming Shifts in Visit"(shifts List<Interval<DateTime>>):
 // Quality Indicator
 
 define function "Is in Initial Population"(visit VisitOccurrence):
-  AgeInYearsAt(convert visit to DateTime) >= 18
+  AgeInYearsAt(start of (convert visit to Interval<DateTime>)) >= 18
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods

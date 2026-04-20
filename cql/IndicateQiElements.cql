@@ -86,11 +86,68 @@ define "Ideal Body Weight Measured or Computed":
 include "IndicateQiElements" called elm
 elm."Intensive Care Visits"
 */
-define "Intensive Care Visits":
+define "Intensive Care Visit Occurrences":
   [VisitOccurrence: "Intensive Care"] v
-    where v.visitStartDatetime <= v.visitEndDatetime
-    return all v
-    sort by visitStartDatetime
+    where v.visitStartDatetime < v.visitEndDatetime
+    return all {
+                 startDatetime:    v.visitStartDatetime,
+                 endDatetime:      v.visitEndDatetime,
+                 visitOccurrences: { v },
+                 visitDetails:     {}
+               }
+    sort by startDatetime
+
+define "Intensive Care Visit Details":
+  [VisitDetail: "Intensive Care"] v
+    where v.visitDetailStartDatetime < v.visitDetailEndDatetime
+    return all {
+                 startDatetime:    v.visitDetailStartDatetime,
+                 endDatetime:      v.visitDetailEndDatetime,
+                 visitOccurrences: {},
+                 visitDetails:     { v }
+               }
+    sort by startDatetime
+
+define "Intensive Care Visits":
+  (1) _
+    let allVisits: (Flatten({ "Intensive Care Visit Occurrences",
+                              "Intensive Care Visit Details" })
+                    as List<Tuple{startDatetime    DateTime,
+                                  endDatetime      DateTime,
+                                  visitOccurrences List<VisitOccurrence>,
+                                  visitDetails     List<VisitDetail>}>)
+                     v
+                     sort by startDatetime
+      return (((Tail(allVisits)) v aggregate r
+               starting (Take(allVisits, 1)):
+                 if v.startDatetime <= Last(r).endDatetime then
+                   Flatten({
+                             Take(r, Length(r) - 1),
+                             { {
+                               startDatetime:    Last(r).startDatetime,
+                               endDatetime:      Max({ Last(r).endDatetime,
+                                                       v.endDatetime }),
+                               visitOccurrences: Flatten({ Last(r).visitOccurrences,
+                                                           v.visitOccurrences }),
+                               visitDetails:     Flatten({ Last(r).visitDetails,
+                                                           v.visitDetails })
+                             } }
+                           })
+                 else
+                   Flatten({
+                             r,
+                             { {
+                               startDatetime:    v.startDatetime,
+                               endDatetime:      v.endDatetime,
+                               visitOccurrences: v.visitOccurrences,
+                               visitDetails:     v.visitDetails
+                             } }
+                           })
+              )
+              as List<Tuple{startDatetime    DateTime,
+                            endDatetime      DateTime,
+                            visitOccurrences List<VisitOccurrence>,
+                            visitDetails     List<VisitDetail>}>)
 
 /*
 @title: Intensive Care Visits in Review Period
@@ -104,8 +161,8 @@ elm."Intensive Care Visits in Review Period"
 */
 define "Intensive Care Visits in Review Period":
   "Intensive Care Visits" v
-    where v.visitStartDatetime after start of "Review Period"
-      and v.visitEndDatetime before end of "Review Period"
+    where v.startDatetime after start of "Review Period"
+      and v.endDatetime before end of "Review Period"
     return all v
 
 /*

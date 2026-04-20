@@ -121,14 +121,15 @@ define function "Conforming Shifts in Visit"(shifts List<Interval<DateTime>>):
 
 // Quality Indicator
 
-define function "Is in Initial Population"(visit VisitOccurrence):
-  AgeInYearsAt(start of (convert visit to Interval<DateTime>)) >= 18
+define function "Is in Initial Population"(visitInterval Interval<DateTime>):
+  AgeInYearsAt(start of visitInterval) >= 18
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
-    let visit:                       visitWithPeriods.visit,
-        inInitialPopulationForVisit: "Is in Initial Population"(visit),
-        shifts:                      T."Shifts during Visit"(visit),
+    let visitInterval:               Interval[visitWithPeriods.visit.startDatetime,
+                                              visitWithPeriods.visit.endDatetime),
+        inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
+        shifts:                      T."Shifts during Period"(visitInterval),
         goodShifts:                  "Conforming Shifts in Visit"(shifts)
       return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
                    return all elm."Period Result"(

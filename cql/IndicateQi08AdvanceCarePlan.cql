@@ -50,17 +50,16 @@ define function "Is Conforming Visit"(period Interval<DateTime>):
 
 // Quality Indicator
 
-define function "Is in Initial Population"(visit VisitOccurrence):
-  (1) _
-    let visitInterval: convert visit to Interval<DateTime>
-      return     duration in hours of visitInterval >= 72
-             and AgeInYearsAt(start of visitInterval) >= 18
+define function "Is in Initial Population"(visitInterval Interval<DateTime>):
+      duration in hours of visitInterval >= 72
+  and AgeInYearsAt(start of visitInterval) >= 18
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
-    let visit:                       visitWithPeriods.visit,
-        inInitialPopulationForVisit: "Is in Initial Population"(visit as VisitOccurrence),
-        conformingVisit:             "Is Conforming Visit"(visit),
+    let visitInterval:               Interval[visitWithPeriods.visit.startDatetime,
+                                              visitWithPeriods.visit.endDatetime),
+        inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
+        conformingVisit:             "Is Conforming Visit"(visitInterval),
         periodCount:                 Count(visitWithPeriods.periods)
       return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
                    return all elm."Period Result"(

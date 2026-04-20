@@ -22,7 +22,7 @@ parameter "Shift Duration"         Quantity default 8 'h'
 
 context Patient
 
-define function "Shifts during Period"(period Interval<DateTime>, shiftDuration Quantity):
+define function "Shifts during Period with Duration"(period Interval<DateTime>, shiftDuration Quantity):
   (1) _
     let periodStartDay:  date from start of period,
         periodEnd:       end of period,
@@ -35,22 +35,31 @@ define function "Shifts during Period"(period Interval<DateTime>, shiftDuration 
              else
                {}
 
-define function "Shifts during Visit"(visit VisitOccurrence):
+define function "Shifts during Period"(period Interval<DateTime>):
   (1) _
     let shiftDuration: Quantity{
                          value: (convert "Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
-      return "Shifts during Period"(visit, shiftDuration)
+      return "Shifts during Period with Duration"(period, shiftDuration)
 
-define function "Shifts during Visits"(visits List<VisitOccurrence>):
+define function "Shifts during Visit"(visit VisitOccurrence):
+  "Shifts during Period"(visit)
+
+define function "Shifts during Visits"
+    (visits List<Tuple{startDatetime    DateTime,
+                       endDatetime      DateTime,
+                       visitOccurrences List<VisitOccurrence>,
+                       visitDetails     List<VisitDetail>}>):
   (1) _
     let shiftDuration: Quantity{
                          value: (convert "Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
       return all (visits) visit
-                   return all "Shifts during Period"(visit, shiftDuration)
+                   return all "Shifts during Period with Duration"(
+                                Interval[visit.startDatetime, visit.endDatetime),
+                                shiftDuration)
 
 define "Shifts in Visits":
   "Shifts during Visits"(E."Intensive Care Visits in Review Period")
@@ -75,9 +84,13 @@ define function "24-hour Periods during Period"(periodInterval Interval<DateTime
              else
                {}
 
-define function "24-hour Periods during Visits"(visits List<VisitOccurrence>):
+define function "24-hour Periods during Visits"
+    (visits List<Tuple{startDatetime    DateTime,
+                       endDatetime      DateTime,
+                       visitOccurrences List<VisitOccurrence>,
+                       visitDetails     List<VisitDetail>}>):
   (visits) v
-    let periods: "24-hour Periods during Period"(v)
+    let periods: "24-hour Periods during Period"(Interval[v.startDatetime, v.endDatetime))
       where Exists(periods)
       return all periods
 
@@ -88,31 +101,37 @@ define "24-hour Periods in Visits":
 
 define "Intensive Care Visits overlapping Review Period":
   E."Intensive Care Visits" v
-    where convert v to Interval<DateTime> overlaps E."Review Period"
+    where Interval[v.startDatetime, v.endDatetime) overlaps E."Review Period"
     return all v
 
-define function "Visits and 24-hour Periods"(visits List<VisitOccurrence>):
+define function "Visits and 24-hour Periods"
+    (visits List<Tuple{startDatetime    DateTime,
+                       endDatetime      DateTime,
+                       visitOccurrences List<VisitOccurrence>,
+                       visitDetails     List<VisitDetail>}>):
   (visits) v
-    let periods: "24-hour Periods during Period"(v)
+    let periods: "24-hour Periods during Period"(Interval[v.startDatetime, v.endDatetime))
       where Exists(periods)
       return all {visit: v, periods: periods}
 
 define function "Visits and 24-hour Periods during Review Period"(
-    visits       List<VisitOccurrence>,
+    visits       List<Tuple{startDatetime    DateTime,
+                            endDatetime      DateTime,
+                            visitOccurrences List<VisitOccurrence>,
+                            visitDetails     List<VisitDetail>}>,
     reviewPeriod Interval<DateTime>
   ):
   Flatten(
     (visits) v
       let previousEndPoint: start of reviewPeriod - 10 hours,
           endPoint:         end of reviewPeriod - 10 hours,
-          allPeriods:       "24-hour Periods during Period"(v)
+          allPeriods:       "24-hour Periods during Period"(Interval[v.startDatetime, v.endDatetime))
         where Exists(allPeriods)
         return all (1) _
                      let periods: (allPeriods) p
                                     where     end of p > previousEndPoint
                                           and end of p <= endPoint
                                     return all p
-
                        return all if Exists(periods) then
                                     { {
                                        reviewPeriod: reviewPeriod,
@@ -123,7 +142,14 @@ define function "Visits and 24-hour Periods during Review Period"(
                                        periods:    periods
                                      } }
                                    else
-                                     ({} as List<Tuple{reviewPeriod Any, startAndEnd Any, visit Any, allPeriods Any, periods Any}>)
+                                     ({} as List<Tuple{reviewPeriod Any,
+                                                       startAndEnd  Any,
+                                                       visit        Tuple{startDatetime    DateTime,
+                                                                          endDatetime      DateTime,
+                                                                          visitOccurrences List<VisitOccurrence>,
+                                                                          visitDetails     List<VisitDetail>},
+                                                       allPeriods   Any,
+                                                       periods      Any}>)
   )
 
 define "Visits with 24-hour Periods":

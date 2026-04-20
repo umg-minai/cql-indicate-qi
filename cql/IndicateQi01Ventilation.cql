@@ -297,24 +297,23 @@ define "Conforming PEEP Measurements":
 
 // TODO(moringenj): We require that all conditions are fulfilled within a visit.
 //                  Is that logic correct?
-define function "Is in Initial Population"(visit VisitOccurrence):
-  (1) _
-    let visitInterval: convert visit to Interval<DateTime>
-      return     Exists("Ventilation Procedures" p
-                          where (convert p to Interval<DateTime>)
-                                overlaps visitInterval)
-             and Exists("Intubation Tube Exposures" d
-                          where (convert d to Interval<DateTime>)
-                                 overlaps visitInterval)
-             and Exists("ARDS Conditions" c
-                          where (convert c to Interval<DateTime>)
-                                overlaps visitInterval)
-             and AgeInYearsAt(start of visitInterval) >= 18
+define function "Is in Initial Population"(visitInterval Interval<DateTime>):
+      Exists("Ventilation Procedures" p
+               where (convert p to Interval<DateTime>)
+                     overlaps visitInterval)
+  and Exists("Intubation Tube Exposures" d
+               where (convert d to Interval<DateTime>)
+                      overlaps visitInterval)
+  and Exists("ARDS Conditions" c
+               where (convert c to Interval<DateTime>)
+                     overlaps visitInterval)
+  and AgeInYearsAt(start of visitInterval) >= 18
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
-    let visitInterval:               convert (visitWithPeriods.visit as OMOP.VisitOccurrence) to Interval<DateTime>,
-        inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
+    let visitInterval:               Interval[visitWithPeriods.visit.startDatetime,
+                                              visitWithPeriods.visit.endDatetime),
+        inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
         measurementsInVisit:         ("PEEP Measurements") m
                                        where m in visitInterval
                                        return all m

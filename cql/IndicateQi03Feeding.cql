@@ -253,13 +253,15 @@ define function "24-hour Periods with appropriate Calorie Intake"(periods List<I
 
 // Quality Indicator
 
-define function "Is in Initial Population"(visit VisitOccurrence):
-  AgeInYearsAt(start of (convert visit to Interval<DateTime>)) >= 18
+define function "Is in Initial Population"(visitInterval Interval<DateTime>):
+  AgeInYearsAt(start of visitInterval) >= 18
 
 // TODO(moringenj): Use contraindication to enteral feeding
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
-    let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
+    let visitInterval:               Interval[visitWithPeriods.visit.startDatetime,
+                                              visitWithPeriods.visit.endDatetime),
+        inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
         goodPeriods:                 "24-hour Periods with appropriate Calorie Intake"(visitWithPeriods.allPeriods)
       return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
                    return all elm."Period Result"(

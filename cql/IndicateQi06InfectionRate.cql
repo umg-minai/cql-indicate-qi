@@ -206,16 +206,15 @@ define function "Overall Incidence in Period"(period Interval<DateTime>):
 
 // Quality Indicator
 
-define function "Is in Initial Population"(visit VisitOccurrence):
-  (1) _
-    let visitInterval: convert visit to Interval<DateTime>
-      return     duration in hours of visitInterval >= 24
-             and AgeInYearsAt(start of visitInterval) >= 18
+define function "Is in Initial Population"(visitInterval Interval<DateTime>):
+      duration in hours of visitInterval >= 24
+  and AgeInYearsAt(start of visitInterval) >= 18
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
-    let visit:                       visitWithPeriods.visit,
-        inInitialPopulationForVisit: "Is in Initial Population"(visit)
+    let visitInterval:               Interval[visitWithPeriods.visit.startDatetime,
+                                              visitWithPeriods.visit.endDatetime),
+        inInitialPopulationForVisit: "Is in Initial Population"(visitInterval)
       return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
                    return all elm."Period Result"(
                      period,

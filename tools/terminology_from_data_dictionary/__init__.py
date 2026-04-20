@@ -4,7 +4,7 @@ import pathlib
 import requests
 from xdg import xdg_cache_home
 
-URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary-content/refs/heads/main/docs/data.json"
+URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary/refs/heads/main/docs/data.json"
 
 def retrieve_data():
     cache_dir = pathlib.Path(xdg_cache_home())

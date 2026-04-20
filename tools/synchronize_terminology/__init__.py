@@ -5,9 +5,9 @@ import pathlib
 import requests
 from xdg import xdg_cache_home
 
-DATA_URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary-content/refs/heads/main/docs/data.json"
-UI_URL = "https://indicate-eu.github.io/data-dictionary-content"
-PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary-content/blob/main/projects/5.json"
+DATA_URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary/refs/heads/main/docs/data.json"
+UI_URL = "https://indicate-eu.github.io/data-dictionary"
+PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary/blob/main/projects/5.json"
 
 def retrieve_cql_data():
     print("Collecting used concepts from CQL libraries")

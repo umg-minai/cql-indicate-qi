@@ -99,11 +99,27 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
              else
                convert lastMeasurement to Quantity
 
-define function "Max Insulin Measurement in Period"(period Interval<DateTime>):
-  Max("Insulin Exposures" m
-        where (convert m to Interval<DateTime>) overlaps period
-        // No registered conversion at the moment
-        return all OMOPFunctions.ToQuantity(m))
+// Note(moringenj): In some databases, insulin dosages come out as [U]
+// instead of [IU].  As far as I can tell, those are supposed to have the
+// same semantics but the UCUM service that the CQL engine uses for unit
+// conversion can only handle [IU] but not [U].
+define function "Convert [U] to [IU]"(quantity Quantity):
+  if quantity.unit = '[U]' then
+    Quantity{value: quantity.value, unit: '[IU]'}
+  else
+    quantity
+
+define function "Max Insulin Rate in Period"(period Interval<DateTime>):
+  (1) _
+    let totalInsulin: Sum("Insulin Exposures" m
+                            where (convert m to Interval<DateTime>) overlaps period
+                            // No registered conversion at the moment
+                            return all "Convert [U] to [IU]"(OMOPFunctions.ToQuantity(m))),
+        periodHours:  Quantity{
+                        value: duration in hours of period,
+                        unit:  'h'
+                      }
+        return totalInsulin / periodHours
 
 define function "Last Energy Requirement Measurement in Period"(period Interval<DateTime>):
   Last("Energy Requirement Measurements" m
@@ -183,25 +199,25 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
 
                                 when     not "Renal Replacement Therapy Procedure in Period"(previousPeriod)
                                      and "Last Phosphate Measurement in Period"(period) < 0.65 'mmol/l'
-                                     and "Max Insulin Measurement in Period"(previousPeriod) <= 4 '[IU]/h'
+                                     and "Max Insulin Rate in Period"(previousPeriod) <= 4 '[IU]/h'
                                      and previousTarget >= 0.5 * initialCalorieTarget then
                                   0.25 * initialCalorieTarget
 
-                                when     "Max Insulin Measurement in Period"(previousPeriod) < 2 '[IU]/h'
+                                when     "Max Insulin Rate in Period"(previousPeriod) < 2 '[IU]/h'
                                      /*and previousTarget < initialCalorieTarget*/ then
                                   previousTarget + 0.25 * initialCalorieTarget
 
-                                when     "Max Insulin Measurement in Period"(previousPeriod)
+                                when     "Max Insulin Rate in Period"(previousPeriod)
                                          in Interval[2 '[IU]/h', 4 '[IU]/h']
                                      /*and previousTarget > 0 'kcal/d'*/ then
                                   previousTarget - 0.25 * initialCalorieTarget
 
-                                when     "Max Insulin Measurement in Period"(previousPeriod) > 4 '[IU]/h'
+                                when     "Max Insulin Rate in Period"(previousPeriod) > 4 '[IU]/h'
                                      /*and previousTarget < 0 'kcal/d'*/ then
                                   previousTarget - 0.5 * initialCalorieTarget
 
                                 else // TODO(moringenj):
-                                  Message(null, true, '400', 'Error', 'No matching case; insulin ' + ToString("Max Insulin Measurement in Period"(previousPeriod)) + ' previous target ' + ToString(previousTarget))
+                                  Message(null, true, '400', 'Error', 'No matching case; insulin ' + ToString("Max Insulin Rate in Period"(previousPeriod)) + ' previous target ' + ToString(previousTarget))
                                   //null
                               end
       // Clamp calorie target to [0, Initial Calorie Target]; the
@@ -232,7 +248,7 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                                         period:         p,
                                         dayOfVisit:     r.dayOfVisit,
                                         phosphate:      "Last Phosphate Measurement in Period"(p),
-                                        insulin:        "Max Insulin Measurement in Period"(r.previousPeriod),
+                                        insulin:        "Max Insulin Rate in Period"(r.previousPeriod),
                                         targetIntake:   target,
                                         actualIntake:   actual,
                                         result:         result

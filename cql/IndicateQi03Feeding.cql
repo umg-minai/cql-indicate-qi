@@ -173,7 +173,7 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
                                                     period         Interval<DateTime>,
                                                     dayOfVisit     Integer):
   (1) _
-    let initialCalorieTarget: 57625.88333333 'g.m2.s-3', // "Initial Calorie Target"(previousPeriod)
+    let initialCalorieTarget: "Initial Calorie Target"(previousPeriod),
         rawTarget:            case
                                 when dayOfVisit = 0 then
                                   null // No target for first 24-hour period

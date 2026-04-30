@@ -66,13 +66,16 @@ concept "Delirium Assessment Measurement": {
 context Patient
 
 define "Pain Assessment Measurements":
-  [Measurement: "Pain Assessment Measurement"]
+  [Measurement: "Pain Assessment Measurement"] m
+    return all m sort by measurementDatetime
 
 define "Sedation Assessment Measurements":
-  [Measurement: "Sedation Assessment Measurement"]
+  [Measurement: "Sedation Assessment Measurement"] m
+    return all m sort by measurementDatetime
 
 define "Delirium Assessment Measurements":
-  [Measurement: "Delirium Assessment Measurement"]
+  [Measurement: "Delirium Assessment Measurement"] m
+    return all m sort by measurementDatetime
 
 // Assessments
 

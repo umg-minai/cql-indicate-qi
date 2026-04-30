@@ -84,11 +84,11 @@ define "Delirium Assessment Measurements":
 define function "Are Conforming Assessments"(measurements List<Tuple{previous Measurement, current Measurement, next Measurement}>,
                                              isFirstShift Boolean):
       Exists(measurements)
-  and AllTrue(measurements m
-                return all    isFirstShift
-                           or (difference in hours
-                                 between (convert m.previous to DateTime)
-                                 and     (convert m.current  to DateTime)) <= 10)
+  and (isFirstShift
+       or AllTrue(measurements m
+                    return all (difference in hours
+                                  between (convert m.previous to DateTime)
+                                  and     (convert m.current  to DateTime)) <= 10))
 
 define function "Measurements during Shift with Neighbors"(
     measurements List<Measurement>,

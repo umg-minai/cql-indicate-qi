@@ -1,3 +1,4 @@
+import pprint
 import json
 import pathlib
 
@@ -54,7 +55,7 @@ def write_drugs_to_file(concept_sets,
         concept_set_name = concept_set.get("name")
         concept_set_size = len(concept_set.get("expression", {}).get("items"))
         concept_set_modification_date = concept_set.get("modifiedDate")
-        concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} entries) [modified {concept_set_modification_date}]\n"
+        concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} direct entries) [modified {concept_set_modification_date}]\n"
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically from
 // {URL}
@@ -73,10 +74,12 @@ include IndicateQiElements called E
                 concept = item.get("concept")
                 concept_id = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
-                entries[concept_name] = concept_id
+                include_descendants = item.get("includeDescendants")
+                entries[concept_name] = (concept_id, include_descendants)
 
-        for concept_name, concept_id in sorted(entries.items(), key=lambda x: x[0].lower()):
-            file.write(f"code \"{concept_name}\": '{concept_id}' from E.OMOPSV\n")
+        for concept_name, (concept_id, include_descendants) in sorted(entries.items(), key=lambda x: x[0].lower()):
+            system = 'E."OMOPSV Hierarchy"' if include_descendants else 'E.OMOPSV'
+            file.write(f"code \"{concept_name}\": '{concept_id}' from {system}\n")
 
         file.write(f"\nconcept \"{concept_definition_name}\": {{")
         is_first = True

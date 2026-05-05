@@ -51,14 +51,12 @@ define "Visit Results":
         inInitialPopulationForVisit: "Is in Initial Population"(visit),
         periods:                     visitWithPeriods.allPeriods,
         goodPeriods:                 "24-hour Periods with conforming Medication"(periods)
-      // TODO(moringenj): The weird as List<...> expressions are needed to work
-      //                  around a bug in the type inference of the CQL engine
-      return all (periods as List<Interval<DateTime>>) period
+      return all (periods) period
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,
                      Count((goodPeriods) s where s during period),
-                     Count((periods)     s where (s as Interval<DateTime>) during period)
+                     Count((periods)     s where s during period)
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")

@@ -133,12 +133,12 @@ define "Visit Results":
         inInitialPopulationForVisit: "Is in Initial Population"(visit),
         shifts:                      T."Shifts during Visit"(visit),
         goodShifts:                  "Conforming Shifts in Visit"(shifts)
-      return all (visitWithPeriods.periods as List<Interval<DateTime>>) period
+      return all (visitWithPeriods.periods) period
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,
                      Count((goodShifts) s where s during period),
-                     Count((shifts)     s where (s as Interval<DateTime>) during period)
+                     Count((shifts)     s where s during period)
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")

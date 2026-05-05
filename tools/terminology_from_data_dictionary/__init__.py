@@ -103,13 +103,13 @@ def main():
     concept_sets = data["conceptSets"]
 
     generate_library_for_category(concept_sets,
-                                  "Drug",
+                                  "Medications",
                                   "Other drugs",
                                   'InsulinDrugs',
                                   'Insulin Drugs')
 
     generate_library_for_category(concept_sets,
-                                  "Drug",
+                                  "Medications",
                                   'Anticoagulants',
                                   'AnticoagulationDrugs',
                                   'Anticoagulation Drugs')

@@ -13,10 +13,10 @@ def retrieve_cql_data():
     print("Collecting used concepts from CQL libraries")
     try:
         process = subprocess.run(['java',
-                                  '-jar', '/home/jan/code/cql/cql-on-omop/target/cql-on-omop-1.0-SNAPSHOT.jar',
+                                  '-jar', '../cql-on-omop.jar',
                                   'terminology', '--omop-version', 'v5.4',
                                   '-p', '5432', '-u', 'postgres', '--password', 'yourpassword', '-d', 'ohdsi',
-                                  '-I', '/home/jan/code/indicate/quality-indicators/cql/',
+                                  '-I', '../../cql/',
                                   'Main'],
                                   capture_output=True,
                                   text=True)

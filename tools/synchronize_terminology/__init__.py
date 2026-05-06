@@ -56,6 +56,14 @@ def retrieve_dictionary_data():
             json.dump(data, file)
         return data
 
+# These concepts are described in INDICATE's general mapping
+# recommendations rather than specific concept sets.
+IGNORED_CONCEPT_IDS = {
+    8532,  # FEMALE
+    8507,  # MALE
+    32037, # Intensive Care
+}
+
 def synchronize():
     cql_data = retrieve_cql_data()
     dictionary_data = retrieve_dictionary_data()
@@ -64,20 +72,22 @@ def synchronize():
     used_concept_sets = []
     unmapped_concepts = []
     for concept in cql_data:
-        def contains_concept_id(concept_id, concept_set):
-            def temp(item):
-                return item.get("concept", {}).get("conceptId") == concept_id
-            return any( temp(item) for item
-                        in concept_set.get("expression", {}).get("items", []))
-        found = False
-        for concept_set in all_concept_sets:
-           if contains_concept_id(int(concept.get("id")), concept_set):
-               found = True
-               if not any( old_concept_set for old_concept_set in used_concept_sets
-                           if old_concept_set.get("id") == concept_set.get("id") ):
-                   used_concept_sets.append(concept_set)
-        if not found:
-            unmapped_concepts.append(concept)
+        concept_id = int(concept.get("id"))
+        if not concept_id in IGNORED_CONCEPT_IDS:
+            def contains_concept_id(concept_id, concept_set):
+                def temp(item):
+                    return item.get("concept", {}).get("conceptId") == concept_id
+                return any( temp(item) for item
+                            in concept_set.get("expression", {}).get("items", []))
+            found = False
+            for concept_set in all_concept_sets:
+               if contains_concept_id(concept_id, concept_set):
+                   found = True
+                   if not any( old_concept_set for old_concept_set in used_concept_sets
+                               if old_concept_set.get("id") == concept_set.get("id") ):
+                       used_concept_sets.append(concept_set)
+            if not found:
+                unmapped_concepts.append(concept)
 
     print(f"\033[1mThe CQL libraries use {len(used_concept_sets)} of {len(all_concept_sets)} concept sets\033[0m")
     for concept_set in used_concept_sets:

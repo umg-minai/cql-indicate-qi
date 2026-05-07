@@ -30,6 +30,7 @@ code "Glucose in Capillary Blood by Glucometer (Mass/volume)":  '3034962' from e
 // Added to minimal dataset:
 
 code "Glucose in Arterial Blood (Mass/volume)":                 '3031266' from elm.OMOPSV
+code "Glucose in Arterial Blood (Moles/volume)":                '3044242' from elm.OMOPSV
 
 code "Glucose in Capillary Blood (Mass/volume)":                '3004077' from elm.OMOPSV
 code "Glucose in Blood (Moles/volume)":                         '3020491' from elm.OMOPSV
@@ -45,6 +46,7 @@ concept "Glucose Level": {
   "Glucose in Mixed Venous Blood (Mass/volume)",
   "Glucose in Capillary Blood by Glucometer (Mass/volume)",
   "Glucose in Arterial Blood (Mass/volume)",
+  "Glucose in Arterial Blood (Moles/volume)",
   "Glucose in Capillary Blood (Mass/volume)",
   "Glucose in Blood (Moles/volume)",
   "Glucose in Capillary Blood by Glucometer (Moles/volume)",

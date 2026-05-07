@@ -72,10 +72,10 @@ define "Phosphate Measurements":
 define "Insulin Exposures":
   [DrugExposure: "Insulin Drugs"]
 
-define "Energy Requirement Measurements":
-  [Measurement: "Energy Requirement"] m
-    return all m
-    sort by measurementDatetime desc
+define "Energy Requirement Observations":
+  [Observation: "Energy Requirement"] o
+    return all o
+    sort by observationDatetime desc
 
 define "CO2 Production Rate Measurements":
   [Measurement: "CO2 Production Rate"]
@@ -121,10 +121,10 @@ define function "Max Insulin Rate in Period"(period Interval<DateTime>):
                       }
         return totalInsulin / periodHours
 
-define function "Last Energy Requirement Measurement in Period"(period Interval<DateTime>):
-  Last("Energy Requirement Measurements" m
-         where m.measurementDatetime in period
-         return all m)
+define function "Last Energy Requirement Observation in Period"(period Interval<DateTime>):
+  Last("Energy Requirement Observations" o
+         where o.observationDatetime in period
+         return all o)
 
 define function "Median CO2 Production Rate in Period"(period Interval<DateTime>):
   Median("CO2 Production Rate Measurements" m
@@ -176,7 +176,7 @@ define "Initial Calorie Target via BMI":
 define function "Initial Calorie Target"(previousDay Interval<DateTime>):
   (1) _
     // TODO(moringenj): what temporal interval should we consider for the energy requirement?
-    let energyRequirement: "Last Energy Requirement Measurement in Period"(previousDay)
+    let energyRequirement: "Last Energy Requirement Observation in Period"(previousDay)
       return if energyRequirement is not null then
                energyRequirement
              else if "Median CO2 Production Rate in Period"(previousDay) is not null then

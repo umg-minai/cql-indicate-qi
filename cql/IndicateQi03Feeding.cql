@@ -46,12 +46,14 @@ concept "Renal Replacement Therapy": {
   "Intermittent Hemodialysis"
 }
 
-code "Phosphate Serum": '3003458' from elm.OMOPSV
-code "Phosphate Blood": '3018913' from elm.OMOPSV
+code "Phosphate in Serum (Moles/volume)": '3003458' from elm.OMOPSV
+code "Phosphate in Blood (Moles/volume)": '3018913' from elm.OMOPSV
+code "Phosphate in Blood (Mass/volume)":  '3024232' from elm.OMOPSV
 
 concept "Phosphate Measurement": {
-  "Phosphate Serum",
-  "Phosphate Blood"
+  "Phosphate in Serum (Moles/volume)",
+  "Phosphate in Blood (Moles/volume)",
+  "Phosphate in Blood (Mass/volume)"
 }
 
 define "Insulin Drugs": InsulinDrugs."Insulin Drugs"
@@ -86,6 +88,22 @@ define "Calorie Intake Measurements":
 define "Renal Replacement Therapy Procedures":
   [ProcedureOccurrence: "Renal Replacement Therapy"]
 
+// TODO(moringenj): will be replaced by utility library
+define function "Convert g/L to mmol/L"(quantity Quantity):
+  (1) _
+    let scaled: convert quantity to 'mg/L'
+      return Quantity{value: 0.0323 * scaled.value, unit: 'mmol/L'}
+
+define function "Ensure Phosphate in mmol/L"(phosphate Quantity):
+  case
+    when Matches(phosphate.unit, '.*g/.*L') then
+      "Convert g/L to mmol/L"(phosphate)
+    when Matches(phosphate.unit, '.*mol/.*L') then
+      phosphate
+    else
+      Message(null, true, '400', 'Error', 'Unit is "' + (if phosphate.unit is null then 'null' else phosphate.unit) + '" but must be either "mol/L" or convertible to "g/L"')
+  end
+
 define function "Last Phosphate Measurement in Period"(period Interval<DateTime>):
   (1) _
     let lastMeasurement: Last("Phosphate Measurements" m
@@ -97,7 +115,7 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
       return if lastMeasurement is null then
                1 'mmol/L'
              else
-               convert lastMeasurement to Quantity
+               "Ensure Phosphate in mmol/L"(convert lastMeasurement to Quantity)
 
 // Note(moringenj): In some databases, insulin dosages come out as [U]
 // instead of [IU].  As far as I can tell, those are supposed to have the

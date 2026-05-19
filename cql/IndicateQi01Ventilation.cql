@@ -40,7 +40,17 @@ concept "PaO2 Measurement": {
   "PaO2 Temperature Adjusted Measurement"
 }
 
-code "FiO2 Measurement": '4353936' from elm.OMOPSV
+code "Inspired oxygen concentration":                                         '4353936' from elm.OMOPSV
+code "Oxygen/Inspired gas Respiratory system --on ventilator":                '3026238' from elm.OMOPSV
+code "Oxygen/Inspired gas Respiratory system by O2 Analyzer --on ventilator": '3025408' from elm.OMOPSV
+code "Oxygen/Total gas setting [Volume Fraction] Ventilator":                 '3024882' from elm.OMOPSV
+
+concept "FiO2 Measurement": {
+  "Inspired oxygen concentration",
+  "Oxygen/Inspired gas Respiratory system --on ventilator",
+  "Oxygen/Inspired gas Respiratory system by O2 Analyzer --on ventilator",
+  "Oxygen/Total gas setting [Volume Fraction] Ventilator"
+}
 
 code "PEEP Total, Measured Measurement": '42527140' from elm.OMOPSV
 code "PEEP Setting Measurement":         '4216746'  from elm.OMOPSV

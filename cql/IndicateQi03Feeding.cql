@@ -35,10 +35,6 @@ code "Contraindication to Enteral Feeding": '4141768' from elm.OMOPSV // observa
 // unit [cal]
 code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV
 
-// TODO(moringenj): Do we not need this for anything?
-/*Calorie intake total:
-- 3007882*/
-
 code "CO2 Production Rate": '21490580' from elm.OMOPSV
 
 code "Continuous Venovenous Hemofiltration":    '4051330' from elm.OMOPSV

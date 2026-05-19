@@ -51,7 +51,7 @@ jobs:
       - name: Get cql-on-omop with Maven
         run: |
           mvn dependency:copy                                            \
-               -Dartifact=de.umg.minai.cqlonomop:cql-on-omop:1.1.0-SNAPSHOT \
+               -Dartifact=de.umg.minai.cqlonomop:cql-on-omop:1.1.2-SNAPSHOT \
                -DoutputDirectory=.
         env:
           PACKAGES_USERNAME_REF: ${{ secrets.PACKAGES_USERNAME }}

@@ -30,7 +30,12 @@ concept "Ventilation Procedure": {
   "Invasive Ventilation Procedure"
 }
 
-code "PaO2/FiO2 Measurement": '3029943' from elm.OMOPSV
+code "Horowitz index in Arterial blood":                                         '3029943' from elm.OMOPSV
+code "Horowitz index adjusted to patients actual temperature in Arterial blood": '3029268' from elm.OMOPSV
+concept "PaO2/FiO2 (Horowitz index) Measurement": {
+  "Horowitz index in Arterial blood",
+  "Horowitz index adjusted to patients actual temperature in Arterial blood"
+}
 
 code "PaO2 Default Measurement":              '3027801' from elm.OMOPSV
 code "PaO2 Temperature Adjusted Measurement": '3022803' from elm.OMOPSV
@@ -121,8 +126,8 @@ define "FiO2 Measurements":
     return all m
     sort by measurementDatetime desc
 
-define "PaO2/FiO2 Measurements":
-  [Measurement: "PaO2/FiO2 Measurement"] m
+define "PaO2/FiO2 (Horowitz index) Measurements":
+  [Measurement: "PaO2/FiO2 (Horowitz index) Measurement"] m
     return all m
     sort by measurementDatetime desc
 
@@ -177,7 +182,7 @@ define function "FiO2 LOCF"(targetTime DateTime):
           return all m)
 
 define function "PaO2/FiO2 LOCF"(targetTime DateTime):
-  First("PaO2/FiO2 Measurements" m
+  First("PaO2/FiO2 (Horowitz index) Measurements" m
           where (convert m to DateTime) same hour or before targetTime
           return all m)
 

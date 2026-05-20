@@ -17,8 +17,8 @@ jobs:
         with:
           distribution:    'temurin'
           java-version:    '21'
-          server-username: PACKAGES_USERNAME_REF # env variable name for username
-          server-password: PACKAGES_TOKEN_REF    # env variable name for GitHub Personal Access To
+          server-username: PACKAGES_USERNAME # env variable name for username
+          server-password: PACKAGES_TOKEN    # env variable name for GitHub Personal Access To
 
       - name: Create dummy Maven project
         run: |
@@ -54,8 +54,8 @@ jobs:
                -Dartifact=de.umg.minai.cqlonomop:cql-on-omop:1.1.2-SNAPSHOT \
                -DoutputDirectory=.
         env:
-          PACKAGES_USERNAME_REF: ${{ secrets.PACKAGES_USERNAME }}
-          PACKAGES_TOKEN_REF:    ${{ secrets.PACKAGES_TOKEN }}
+          PACKAGES_USERNAME: ''
+          PACKAGES_TOKEN:    ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check CQL libraries
         run: |

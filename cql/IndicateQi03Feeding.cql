@@ -194,7 +194,7 @@ define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod 
               1
              else
               0.6,
-    unit: 'kcal'
+    unit: 'kcal/d'
   }
 
 define "Initial Calorie Target via BMI":

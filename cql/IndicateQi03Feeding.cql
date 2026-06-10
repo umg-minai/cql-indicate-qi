@@ -255,18 +255,7 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                     r.dayOfVisit
                   ),
           actual: "Calorie Intake in Period"(p),
-          result: 0.9 * target <= actual and actual <= 1.1 * target,
-          debug:  Flatten({r.debug,   {{
-                                        previousPeriod: r.previousPeriod,
-                                        previousTarget: r.previousTarget,
-                                        period:         p,
-                                        dayOfVisit:     r.dayOfVisit,
-                                        phosphate:      "Last Phosphate Measurement in Period"(p),
-                                        insulin:        "Max Insulin Rate in Period"(r.previousPeriod),
-                                        targetIntake:   target,
-                                        actualIntake:   actual,
-                                        result:         result
-                                      }}})
+          result: 0.9 * target <= actual and actual <= 1.1 * target
         return {
                  previousPeriod: p,
                  previousTarget: target,
@@ -274,8 +263,7 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                  results:        if result then
                                    Flatten({r.results, {}})
                                  else
-                                   r.results,
-                 debug:          debug
+                                   r.results
                }
 
 define function "24-hour Periods with appropriate Calorie Intake"(periods List<Interval<DateTime>>):

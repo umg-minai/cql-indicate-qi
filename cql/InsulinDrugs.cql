@@ -1,12 +1,12 @@
 // This file has been generated automatically from
-// https://raw.githubusercontent.com/indicate-eu/data-dictionary/refs/heads/main/docs/data.json
+// commit edaaf809a126b08f1c96ffd983434cb73973fa4f or https://github.com/indicate-eu/data-dictionary
 // Concept set(s)
-// * Insulin Aspart (1 direct entries) [modified 2026-04-09]
 // * Insulin Aspart, Human (1 direct entries) [modified 2026-04-09]
 // * Insulin Degludec (1 direct entries) [modified 2026-04-09]
 // * Insulin Detemir (1 direct entries) [modified 2026-04-09]
 // * Insulin Glargine (1 direct entries) [modified 2026-04-09]
 // * Insulin Glulisine, Human (1 direct entries) [modified 2026-04-09]
+// * [Deprecated] Insulin Aspart (1 direct entries) [modified 2026-06-10]
 
 // Do not edit
 

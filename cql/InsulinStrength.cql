@@ -1,3 +1,11 @@
+// This library contains functions for computing from DrugExposure entrie the
+// effective amount of administered insulin in [IU].
+//
+// The computation is complicated by the fact that insulin drugs often contain
+// multiple ingredients only some of which are insulin variants. Furthermore,
+// the DrugStrength entries for the insulin ingredient use different units and
+// need to be converted to [IU].
+
 library "InsulinStrength" version '0.0.0'
 
 using OMOP version 'v5.4'

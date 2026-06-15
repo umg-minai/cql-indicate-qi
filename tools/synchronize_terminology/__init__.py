@@ -1,11 +1,11 @@
-import subprocess
 import json
 import pathlib
+import subprocess
+import sys
 
-import requests
-from xdg import xdg_cache_home
+sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
+import data_dictionary.load
 
-DATA_URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary/refs/heads/main/docs/data.json"
 UI_URL = "https://indicate-eu.github.io/data-dictionary"
 PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary/blob/main/projects/5.json"
 
@@ -39,25 +39,6 @@ def retrieve_cql_data():
         print(f"Error running cql-on-omop program: {e}")
         return None
 
-
-def retrieve_dictionary_data():
-    cache_dir = pathlib.Path(xdg_cache_home())
-    cache_file = cache_dir / pathlib.Path('indicate-data.json')
-    try:
-        print(f"Trying to read from cache file {cache_file}")
-        with open(cache_file) as file:
-            return json.load(file)
-
-    except FileNotFoundError:
-        print(f"Downloading from {DATA_URL}")
-        response = requests.get(DATA_URL)
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        data = response.json()
-        print(f"Writing to cache file {cache_file}")
-        with open(cache_file, 'w') as file:
-            json.dump(data, file)
-        return data
-
 # These concepts are described in INDICATE's general mapping
 # recommendations rather than specific concept sets.
 IGNORED_CONCEPT_IDS = {
@@ -78,9 +59,8 @@ def format_concept(concept_id, concept_name):
 
 def synchronize():
     cql_data = retrieve_cql_data()
-    dictionary_data = retrieve_dictionary_data()
-
-    all_concept_sets = dictionary_data.get("conceptSets", [])
+    all_concept_sets = data_dictionary.load.load_concept_sets()[0]
+    all_concept_sets = list(all_concept_sets.values())
     used_concept_sets = []
     unmapped_concepts = []
     for concept in cql_data:

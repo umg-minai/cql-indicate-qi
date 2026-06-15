@@ -1,36 +1,19 @@
 import pprint
 import json
 import pathlib
+import sys
 
-import requests
-from xdg import xdg_cache_home
-
-URL = "https://raw.githubusercontent.com/indicate-eu/data-dictionary/refs/heads/main/docs/data.json"
-
-def retrieve_data():
-    cache_dir = pathlib.Path(xdg_cache_home())
-    cache_file = cache_dir / pathlib.Path('indicate-data.json')
-    try:
-        print(f"Trying to read from cache file {cache_file}")
-        with open(cache_file) as file:
-            return json.load(file)
-
-    except FileNotFoundError:
-        print(f"Downloading from {URL}")
-        response = requests.get(URL)
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        data = response.json()
-        print(f"Writing to cache file {cache_file}")
-        with open(cache_file, 'w') as file:
-            json.dump(data, file)
-        return data
+sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
+import data_dictionary.load
 
 
 def generate_library_for_category(concept_sets,
                                   category,
                                   subcategory,
                                   library_name,
-                                  concept_definition_name):
+                                  concept_definition_name,
+                                  repository_url,
+                                  commit):
     """Generates a CQL library for a specific drug category."""
 
     def is_matching_concept_set(concept_set):
@@ -41,24 +24,29 @@ def generate_library_for_category(concept_sets,
     write_drugs_to_file(relevant_concept_sets,
                         f"../../cql/{library_name}.cql",
                         library_name,
-                        concept_definition_name)
+                        concept_definition_name,
+                        repository_url,
+                        commit)
 
 
 def write_drugs_to_file(concept_sets,
                         filename,
                         library_name,
-                        concept_definition_name):
+                        concept_definition_name,
+                        repository_url,
+                        commit):
     """Writes drug concepts to a CQL file."""
     print(f"Writing {len(concept_sets)} concept sets to {filename}")
+    concept_sets_sorted = sorted(concept_sets, key=lambda concept_set: concept_set.get("name"))
     concept_sets_comments = "// Concept set(s)\n"
-    for concept_set in concept_sets:
+    for concept_set in concept_sets_sorted:
         concept_set_name = concept_set.get("name")
         concept_set_size = len(concept_set.get("expression", {}).get("items"))
         concept_set_modification_date = concept_set.get("modifiedDate")
         concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} direct entries) [modified {concept_set_modification_date}]\n"
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically from
-// {URL}
+// commit {commit} or {repository_url}
 {concept_sets_comments}
 // Do not edit
 
@@ -68,7 +56,7 @@ include IndicateQiElements called E
 
 """)
         entries = {}
-        for concept_set in concept_sets:
+        for concept_set in concept_sets_sorted:
             items = concept_set.get("expression", {}).get("items")
             for item in items:
                 concept = item.get("concept")
@@ -94,25 +82,24 @@ include IndicateQiElements called E
 
 def main():
     """Main function to fetch data and generate libraries."""
-    try:
-        data = retrieve_data()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching data: {e}")
-        return 1
+    concept_sets, repository_url, commit \
+        = data_dictionary.load.load_concept_sets()
 
-    concept_sets = data["conceptSets"]
-
-    generate_library_for_category(concept_sets,
+    generate_library_for_category(concept_sets.values(),
                                   "Medications",
                                   "Other drugs",
                                   'InsulinDrugs',
-                                  'Insulin Drugs')
+                                  'Insulin Drugs',
+                                  repository_url,
+                                  commit)
 
-    generate_library_for_category(concept_sets,
+    generate_library_for_category(concept_sets.values(),
                                   "Medications",
                                   'Anticoagulants',
                                   'AnticoagulationDrugs',
-                                  'Anticoagulation Drugs')
+                                  'Anticoagulation Drugs',
+                                  repository_url,
+                                  commit)
 
     return None
 

@@ -16,7 +16,8 @@ def retrieve_cql_data():
     try:
         process = subprocess.run(['java',
                                   '-jar', '../cql-on-omop.jar',
-                                  'terminology', '--omop-version', 'v5.4',
+                                  'terminology', '--resolve-concepts',
+                                  '--omop-version', 'v5.4',
                                   '-p', '5432', '-u', 'postgres', '--password', 'yourpassword', '-d', 'ohdsi',
                                   '-I', '../../cql/',
                                   'Main'],
@@ -59,26 +60,28 @@ def format_concept(concept_id, concept_name):
 
 def synchronize():
     cql_data = retrieve_cql_data()
-    all_concept_sets = data_dictionary.load.load_concept_sets()[0]
+    all_concept_sets = data_dictionary.load.load_resolved_concept_sets()[0]
     all_concept_sets = list(all_concept_sets.values())
+    concept_id_to_concept_set = dict()
+    for concept_set in all_concept_sets:
+        for concept in concept_set.get('resolvedConcepts', []):
+            concept_id = concept.get('conceptId')
+            if concept_id in concept_id_to_concept_set:
+                concept_id_to_concept_set[concept_id].append(concept_set)
+            else:
+                concept_id_to_concept_set[concept_id] = [ concept_set ]
     used_concept_sets = []
     unmapped_concepts = []
     for concept in cql_data:
         concept_id = int(concept.get("id"))
         if concept_id in IGNORED_CONCEPT_IDS:
             continue
-        def contains_concept_id(concept_id, concept_set):
-            def temp(item):
-                return item.get("concept", {}).get("conceptId") == concept_id
-            return any( temp(item) for item
-                        in concept_set.get("expression", {}).get("items", []))
         found = False
-        for concept_set in all_concept_sets:
-            if contains_concept_id(concept_id, concept_set):
-                found = True
-                if not any( old_concept_set for old_concept_set in used_concept_sets
-                            if old_concept_set.get("id") == concept_set.get("id") ):
-                    used_concept_sets.append(concept_set)
+        for concept_set in concept_id_to_concept_set.get(concept_id, {}):
+            found = True
+            if not any( old_concept_set for old_concept_set in used_concept_sets
+                        if old_concept_set.get("conceptSetId") == concept_set.get("conceptSetId") ):
+                used_concept_sets.append(concept_set)
             used_concepts = None
             if not 'used_concepts' in concept_set:
                 used_concepts = set()
@@ -91,14 +94,14 @@ def synchronize():
 
     print(f"\033[1mThe CQL libraries use {len(used_concept_sets)} of {len(all_concept_sets)} concept sets\033[0m")
     for concept_set in sorted(used_concept_sets, key=lambda concept_set: concept_set.get("name")):
-        concept_set_id        = concept_set.get("id")
+        concept_set_id        = concept_set.get("conceptSetId")
         concept_set_name      = concept_set.get('name')
-        all_concepts          = concept_set.get("expression", {}).get("items", [])
+        all_concepts          = concept_set.get('resolvedConcepts')
         used_concepts         = concept_set.get("used_concepts", set())
-        unreferenced_concepts = [ item.get("concept", {})
+        unreferenced_concepts = [ item
                                   for item in all_concepts
-                                  if not item.get("concept", {}).get("conceptId", None) in used_concepts]
-        print(f"* {format_concept_set(concept_set_id, concept_set_name)}")
+                                  if not item.get("conceptId", None) in used_concepts ]
+        print(f"* {format_concept_set(concept_set_id, concept_set_name)}, {len(all_concepts)} concept(s)")
         if unreferenced_concepts:
             print(f"  \033[33mThe following {len(unreferenced_concepts)} concept(s) of {len(all_concepts)} total concept(s) are not referenced by any CQL library:\033[0m")
             limit = 5
@@ -110,7 +113,7 @@ def synchronize():
                 print(f"  … {len(unreferenced_concepts) - limit} more")
 
     print(f"\n\033[1mJSON-formatted for updating \033]8;;{PROJECT_INFO_URL}\033\\{PROJECT_INFO_URL}\033]8;;\033\\:\033[0m")
-    print(f"  {json.dumps(sorted( concept_set.get('id') for concept_set in used_concept_sets))}")
+    print(f"  {json.dumps(sorted( concept_set.get('conceptSetId') for concept_set in used_concept_sets))}")
 
     if unmapped_concepts:
         print(f"\n\033[33mThe following {len(unmapped_concepts)} concept(s) are used by CQL libraries but are not contained in any concept set:\033[0m")

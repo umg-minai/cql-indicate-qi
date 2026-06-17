@@ -62,6 +62,8 @@ def format_concept(concept_id, concept_name):
 
 def synchronize():
     cql_data = retrieve_cql_data()
+    cql_data = [ concept for concept in cql_data
+                 if not concept.get("usingLibraries") == [ "InsulinIngredients" ] ]
     all_concept_sets = data_dictionary.load.load_resolved_concept_sets()[0]
     all_concept_sets = list(all_concept_sets.values())
     concept_id_to_concept_set = dict()

@@ -53,6 +53,8 @@ def format_concept_set(concept_set_id, concept_set_name):
 
 def format_concept(concept_id, concept_name):
     label = concept_name or '«no name»'
+    if len(label) > 80:
+        label = label[:80] + '…'
     if concept_id < 2000000000:
         return f"\033]8;;{ATHENA_URL}/search-terms/terms/{concept_id}\033\\{label} ({concept_id})\033]8;;\033\\"
     else:
@@ -84,11 +86,11 @@ def synchronize():
                 used_concept_sets.append(concept_set)
             used_concepts = None
             if not 'used_concepts' in concept_set:
-                used_concepts = set()
+                used_concepts = dict()
                 concept_set["used_concepts"] = used_concepts
             else:
                 used_concepts = concept_set.get("used_concepts")
-            used_concepts.add(concept_id)
+            used_concepts[concept_id] = concept
         if not found:
             unmapped_concepts.append(concept)
 
@@ -97,20 +99,41 @@ def synchronize():
         concept_set_id        = concept_set.get("conceptSetId")
         concept_set_name      = concept_set.get('name')
         all_concepts          = concept_set.get('resolvedConcepts')
-        used_concepts         = concept_set.get("used_concepts", set())
+        used_concepts         = concept_set.get("used_concepts", dict())
         unreferenced_concepts = [ item
                                   for item in all_concepts
-                                  if not item.get("conceptId", None) in used_concepts ]
+                                  if not item.get("conceptId", None) in used_concepts.keys() ]
+        deprecated            = concept_set.get("deprecated")
+        if deprecated:
+            print("\033[31m", end='')
         print(f"* {format_concept_set(concept_set_id, concept_set_name)}, {len(all_concepts)} concept(s)")
+        if deprecated:
+            print("\033[0m", end='')
+        def map_with_limit(collection, function, limit=5):
+            for element in collection[:limit]:
+                function(element)
+            if len(collection) > limit:
+                print(f"  … {len(collection) - limit} more")
         if unreferenced_concepts:
             print(f"  \033[33mThe following {len(unreferenced_concepts)} concept(s) of {len(all_concepts)} total concept(s) are not referenced by any CQL library:\033[0m")
-            limit = 5
-            for concept in sorted(unreferenced_concepts, key=lambda concept: concept.get("conceptName"))[:limit]:
+            def print_unreferenced(concept):
                 concept_id   = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
                 print(f"  * {format_concept(concept_id, concept_name)}")
-            if len(unreferenced_concepts) > limit:
-                print(f"  … {len(unreferenced_concepts) - limit} more")
+            map_with_limit(
+                sorted(unreferenced_concepts, key=lambda concept: concept.get("conceptName")),
+                print_unreferenced)
+        if deprecated or unreferenced_concepts:
+            print(f"  \033[1mUsed by the following {len(used_concepts)} concept(s)")
+            def print_used(concept):
+                concept_id      = int(concept.get('id'))
+                concept_name    = concept.get('name')
+                using_libraries = concept.get("usingLibraries", [])
+                print(f"  * {', '.join(using_libraries)}: {format_concept(concept_id, concept_name)}")
+            map_with_limit(
+                sorted(used_concepts.values(), key=lambda concept: concept.get("name")),
+                print_used)
+            print("\033[0m", end="")
 
     print(f"\n\033[1mJSON-formatted for updating \033]8;;{PROJECT_INFO_URL}\033\\{PROJECT_INFO_URL}\033]8;;\033\\:\033[0m")
     print(f"  {json.dumps(sorted( concept_set.get('conceptSetId') for concept_set in used_concept_sets))}")

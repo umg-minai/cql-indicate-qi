@@ -44,6 +44,7 @@ def load_resolved_concept_sets(add_names=True):
             with open(f"{directory}/concept_sets/{concept_set_id}.json") as file:
                 concept_set = json.load(file)
                 resolved_concept_set['name'] = concept_set.get('name')
+                resolved_concept_set['deprecated'] = concept_set.get('metadata', {}).get('reviewStatus') == 'deprecated'
         concept_sets[concept_set_id] = resolved_concept_set
     print(f"Read {len(concept_sets)} resolved concept sets")
     return concept_sets, REPOSITORY_URL, commit

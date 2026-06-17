@@ -18,7 +18,7 @@ def retrieve_cql_data():
                                   '-jar', '../cql-on-omop.jar',
                                   'terminology', '--resolve-concepts',
                                   '--omop-version', 'v5.4',
-                                  '-p', '5432', '-u', 'postgres', '--password', 'yourpassword', '-d', 'ohdsi',
+                                  '-p', '9432', '-u', 'postgres', '--password', 'postgres', '-d', 'omop_cdm', '--schema', 'vocab',
                                   '-I', '../../cql/',
                                   'Main'],
                                   capture_output=True,

@@ -26,11 +26,11 @@ code "Visual Analog Pain Scale (Measurement)":        '4165600'    from elm.OMOP
 code "Visual Analog Pain Scale Score (Measurement)":  '40481449'   from elm.OMOPSV
 
 concept "Pain Assessment Measurement": {
-    "Behavioral Pain Scale (Measurement)",
-    "Numeric Pain Rating Scale (Measurement)",
-    "Numeric Pain Rating Scale Score (Measurement)",
-    "Visual Analog Pain Scale (Measurement)",
-    "Visual Analog Pain Scale Score (Measurement)"
+  "Behavioral Pain Scale (Measurement)",
+  "Numeric Pain Rating Scale (Measurement)",
+  "Numeric Pain Rating Scale Score (Measurement)",
+  "Visual Analog Pain Scale (Measurement)",
+  "Visual Analog Pain Scale Score (Measurement)"
 }
 
 // Sedation Assessment

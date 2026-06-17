@@ -165,9 +165,9 @@ define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod 
     value: "Median CO2 Production Rate in Period"(previousPeriod).value
            * 8.19
            * if "Body Mass Index" < 30 'kg/m' then
-              1
+               1
              else
-              0.6,
+               0.6,
     unit: 'kcal/d'
   }
 

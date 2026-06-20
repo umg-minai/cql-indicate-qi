@@ -31,7 +31,8 @@ concept "Energy Requirement (Observation)": {
   "Estimated required quantity of energy in 24 hours"
 }
 
-code "Contraindication to Enteral Feeding": '4141768' from elm.OMOPSV // observation
+// TODO(moringenj): not yet used
+code "Contraindication to Enteral Feeding": '2100000009' from elm.OMOPSV // observation
 
 // unit [cal]
 code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV

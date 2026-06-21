@@ -12,7 +12,6 @@ using OMOP version 'v5.4'
 include OMOPHelpers
 
 include TimePeriods called T
-
 include IndicateQiElements called elm
 include IndicateQiUtilities called U
 
@@ -60,21 +59,25 @@ context Patient
 
 define "CVC Device Exposures":
   [DeviceExposure: "Central Venous Catheter Device"] d
+    where U.CheckDateTimeInterval(d)
     return all d
     sort by deviceExposureStartDatetime
 
 define "Catheter-related Bloodstream Infection Conditions":
   [ConditionOccurrence: "Catheter-related Bloodstream Infection"] c
+    where U.CheckDateTimeInterval(c)
     return all c
     sort by conditionStartDatetime
 
 define "Ventilation Procedures":
   [ProcedureOccurrence: "Invasive Ventilation"] p
+    where U.CheckDateTimeInterval(p)
     return all p
     sort by procedureDatetime
 
 define "Ventilator associated Pneumonia Conditions":
   [ConditionOccurrence: "Ventilator associated Pneumonia"] c
+    where U.CheckDateTimeInterval(c)
     return all c
     sort by conditionStartDatetime
 
@@ -122,10 +125,7 @@ define function "Number of CRBSI in Period"(period Interval<DateTime>):
   Count(
     ("Catheter-related Bloodstream Infection Conditions") c
       where (convert c to Interval<DateTime>) overlaps period
-      return all if c.conditionEndDatetime is null then
-                   Message(c, true, '400', 'Error', 'Condition without end time')
-                 else
-                   c
+      return all c
   )
 
 define function "CRBSI Incidence in Period"(period Interval<DateTime>):

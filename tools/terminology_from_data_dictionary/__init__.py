@@ -17,8 +17,11 @@ def generate_library_for_category(concept_sets,
     """Generates a CQL library for a specific drug category."""
 
     def is_matching_concept_set(concept_set):
-        en = concept_set.get("metadata", {}).get("translations", {}).get("en", {})
-        return en.get("category") == category and en.get("subcategory") == subcategory
+        metadata = concept_set.get("metadata", {})
+        en = metadata.get("translations", {}).get("en", {})
+        return not metadata.get('reviewStatus') == 'deprecated' \
+            and en.get("category") == category \
+            and en.get("subcategory") == subcategory
     relevant_concept_sets = [concept_set for concept_set in concept_sets if is_matching_concept_set(concept_set)]
 
     write_drugs_to_file(relevant_concept_sets,

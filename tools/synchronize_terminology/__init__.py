@@ -74,6 +74,9 @@ def synchronize():
                 concept_id_to_concept_set[concept_id].append(concept_set)
             else:
                 concept_id_to_concept_set[concept_id] = [ concept_set ]
+    # For concepts that are used in CQL libraries (modulo imperfect
+    # precision of the analysis), find the data dictionary concept
+    # sets in which the concepts are defined.
     used_concept_sets = []
     unmapped_concepts = []
     for concept in cql_data:
@@ -81,18 +84,31 @@ def synchronize():
         if concept_id in IGNORED_CONCEPT_IDS:
             continue
         found = False
-        for concept_set in concept_id_to_concept_set.get(concept_id, {}):
+        concept_sets = concept_id_to_concept_set.get(concept_id, [])
+        if concept_sets:
             found = True
-            if not any( old_concept_set for old_concept_set in used_concept_sets
-                        if old_concept_set.get("conceptSetId") == concept_set.get("conceptSetId") ):
-                used_concept_sets.append(concept_set)
-            used_concepts = None
-            if not 'used_concepts' in concept_set:
-                used_concepts = dict()
-                concept_set["used_concepts"] = used_concepts
-            else:
-                used_concepts = concept_set.get("used_concepts")
-            used_concepts[concept_id] = concept
+            # If the concept is contained in deprecated concept
+            # sets and non-deprecated concept sets, consider only
+            # the non-deprecated ones.  Otherwise, consider the
+            # deprecated ones as well.
+            relevant_concept_sets = [ concept_set
+                                      for concept_set in concept_sets
+                                      if not concept_set.get("deprecated") ]
+            if not relevant_concept_sets:
+                 relevant_concept_sets = [ concept_set
+                                           for concept_set in concept_sets
+                                           if concept_set.get("deprecated") ]
+            for concept_set in relevant_concept_sets:
+                if not any( old_concept_set for old_concept_set in used_concept_sets
+                            if old_concept_set.get("conceptSetId") == concept_set.get("conceptSetId") ):
+                    used_concept_sets.append(concept_set)
+                used_concepts = None
+                if not 'used_concepts' in concept_set:
+                    used_concepts = dict()
+                    concept_set["used_concepts"] = used_concepts
+                else:
+                    used_concepts = concept_set.get("used_concepts")
+                used_concepts[concept_id] = concept
         if not found:
             unmapped_concepts.append(concept)
 

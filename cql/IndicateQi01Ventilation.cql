@@ -22,8 +22,6 @@ include VentilationProcedures
 
 code "ARDS Condition": '4195694' from elm.OMOPSV // ICD10 based code: '45552897'
 
-code "Intubation Tube": '4097216' from elm."OMOPSV Hierarchy"
-
 code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
 concept "Ventilation Procedure": {
@@ -207,7 +205,7 @@ define "Ventilation Procedures":
   [ProcedureOccurrence: VentilationProcedures."PCV or VCV Ventilation Procedure"]
 
 define "Intubation Tube Exposures":
-  [DeviceExposure: "Intubation Tube"]
+  [DeviceExposure: elm."Intubation Tube"]
 
 define "ARDS Conditions":
   [ConditionOccurrence: "ARDS Condition"]

@@ -18,13 +18,6 @@ include TimePeriods called T
 
 include IndicateQiElements called elm
 
-// TODO(moringenj): shared with IndicateQi01Ventilation
-code "Intubated (Tube Present)": '4097216' from elm.OMOPSV
-
-concept "Intubation Tube": {
-  "Intubated (Tube Present)"
-}
-
 code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
 concept "Ventilation Procedure": {
@@ -100,7 +93,7 @@ define function "Ventilated for at least 48 Hours"(procedureIntervals List<Inter
            return all i)
 
 define function "Is in Initial Population"(visitInterval Interval<DateTime>):
-      Exists([DeviceExposure: "Intubation Tube"] d
+      Exists([DeviceExposure: elm."Intubation Tube"] d
                where (convert d to Interval<DateTime>)
                      overlaps visitInterval)
   and "Ventilated for at least 48 Hours"(

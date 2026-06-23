@@ -24,6 +24,8 @@ codesystem "OMOPSV Hierarchy": 'https://fhir-terminology.ohdsi.org?hierarchical'
 
 code "Intensive Care": '32037' from OMOPSV
 
+code "Intubation Tube": '4097216' from "OMOPSV Hierarchy"
+
 code "Body Height": '3036277' from OMOPSV
 
 code "Body Weight": '4099154' from OMOPSV

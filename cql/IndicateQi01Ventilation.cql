@@ -315,10 +315,20 @@ define function "Recommended PEEP for PaO2"(peepTime DateTime):
 
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
-    let tidalVolumeQuantity: convert tidalVolume to Quantity,
-        tidalVolumeValue:    (convert tidalVolumeQuantity to 'mL').value,
-        idwValue:            elm."Ideal Body Weight Measured or Computed".value
-      return tidalVolumeValue in Interval[4 * idwValue, 8 * idwValue]
+    let tidalVolumeQuantity:  convert tidalVolume to Quantity,
+        tidalVolumeValue:     (convert tidalVolumeQuantity to 'mL').value,
+        tidalVolumeTime:      convert tidalVolume to DateTime,
+        // The function returns the ideal body weight converted/scaled to kg/m
+        // not just any mass/length dimensions so taking the value out of the
+        // quantity is well-defined.
+        idealBodyWeight:      elm."Ideal Body Weight Measured or Computed Before"(
+                                tidalVolumeTime
+                              ),
+        idealBodyWeightValue: idealBodyWeight.value
+      return tidalVolumeValue in Interval[
+                                   4 * idealBodyWeightValue,
+                                   8 * idealBodyWeightValue
+                                 ]
 
 define function "Effective Plateau Pressure"(peepMeasurement Measurement): // TODO(moringenj): pass only time
   (1) _

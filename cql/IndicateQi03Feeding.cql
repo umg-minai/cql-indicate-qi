@@ -65,13 +65,6 @@ define "Insulin Drugs": InsulinDrugs."Insulin Drugs"
 
 context Patient
 
-define "Body Mass Index":
-  // We use multiplication because the CQL Power operator cannot be applied
-  // to quantities.
-  elm."Most Recent Body Weight Measurement"
-  / (elm."Most Recent Body Height Measurement"
-     * elm."Most Recent Body Height Measurement")
-
 // Measurements and Procedures
 
 define "Phosphate Measurements":
@@ -165,31 +158,44 @@ define function "Renal Replacement Therapy Procedure in Period"(period Interval<
 //
 
 define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod Interval<DateTime>):
-  Quantity{
-    value: "Median CO2 Production Rate in Period"(previousPeriod).value
-           * 8.19
-           * if "Body Mass Index" < 30 'kg/m2' then
-               1
-             else
-               0.6,
-    unit: 'kcal/d'
-  }
+  (1) _
+    let bodyMassIndex: elm."Body Mass Index Before"(end of previousPeriod)
+      return Quantity{
+               value: "Median CO2 Production Rate in Period"(previousPeriod).value
+                      * 8.19
+                      * if bodyMassIndex < 30 'kg/m2' then
+                          1
+                        else
+                          0.6,
+               unit: 'kcal/d'
+             }
 
-define "Initial Calorie Target via BMI":
-  case
-    when "Body Mass Index" < 30 'kg/m2' then
-      // TODO(moringenj): use time-dependent body weight
-      24 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
-    when "Body Mass Index" <= 50 'kg/m2' then
-      14 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
-    else
-      24 'kcal/d/kg'
-      * Quantity{
-          // TODO(moringenj): use existing "Ideal Body Weight"
-          value: (48.4 + 77 * ((convert elm."Most Recent Body Height Measurement" to Quantity) - 1.5 'm').value),
-          unit:  'kg'
-        }
-  end
+define function "Initial Calorie Target via BMI"(targetTime DateTime):
+  (1) _
+    let bodyMassIndex: elm."Body Mass Index Before"(targetTime),
+        bodyWeight:    elm."Most Recent Body Weight Measurement Before"(targetTime),
+        bodyHeight:    elm."Most Recent Body Height Measurement Before"(targetTime)
+      return case
+               when bodyMassIndex is not null
+                    and bodyWeight is not null
+                    and bodyMassIndex < 30 'kg/m2' then
+                 24 'kcal/d/kg' * (convert bodyWeight to Quantity)
+               when bodyMassIndex is not null
+                    and bodyWeight is not null
+                    and bodyMassIndex <= 50 'kg/m2' then
+                 14 'kcal/d/kg' * (convert bodyWeight to Quantity)
+               when bodyHeight is not null then
+                 (1) __
+                   let bodyHeightInM: convert (convert bodyHeight to Quantity) to 'm'
+                     return 24 'kcal/d/kg'
+                            * Quantity{
+                                // TODO(moringenj): use existing "Ideal Body Weight"
+                                value: (48.4 + 77 * (bodyHeightInM - 1.5 'm').value),
+                                unit:  'kg'
+                              }
+               else
+                 null
+             end
 
 define function "Initial Calorie Target"(previousDay Interval<DateTime>):
   (1) _
@@ -200,7 +206,17 @@ define function "Initial Calorie Target"(previousDay Interval<DateTime>):
              else if "Median CO2 Production Rate in Period"(previousDay) is not null then
                "Initial Calorie Target via CO2 Production Rate"(previousDay)
              else
-               "Initial Calorie Target via BMI"
+               (1) __
+                 let viaBMI: "Initial Calorie Target via BMI"(end of previousDay)
+                   return if viaBMI is null then
+                            Message(null, true, '400', 'Error',
+                                    'Could not determine initial calorie target'
+                                    + ' via documented energy requirement,'
+                                    + ' observed CO2 production rate or body'
+                                    + ' mass index (neither documented nor'
+                                    + ' computed)')
+                          else
+                            viaBMI
 
 define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
                                                     previousPeriod Interval<DateTime>,

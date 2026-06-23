@@ -66,8 +66,11 @@ define "Insulin Drugs": InsulinDrugs."Insulin Drugs"
 context Patient
 
 define "Body Mass Index":
+  // We use multiplication because the CQL Power operator cannot be applied
+  // to quantities.
   elm."Most Recent Body Weight Measurement"
-  / elm."Most Recent Body Height Measurement"
+  / (elm."Most Recent Body Height Measurement"
+     * elm."Most Recent Body Height Measurement")
 
 // Measurements and Procedures
 
@@ -165,7 +168,7 @@ define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod 
   Quantity{
     value: "Median CO2 Production Rate in Period"(previousPeriod).value
            * 8.19
-           * if "Body Mass Index" < 30 'kg/m' then
+           * if "Body Mass Index" < 30 'kg/m2' then
                1
              else
                0.6,
@@ -174,10 +177,10 @@ define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod 
 
 define "Initial Calorie Target via BMI":
   case
-    when "Body Mass Index" < 30 'kg/m' then
+    when "Body Mass Index" < 30 'kg/m2' then
       // TODO(moringenj): use time-dependent body weight
       24 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
-    when "Body Mass Index" <= 50 'kg/m' then
+    when "Body Mass Index" <= 50 'kg/m2' then
       14 'kcal/d/kg' * (convert elm."Most Recent Body Weight Measurement" to Quantity)
     else
       24 'kcal/d/kg'

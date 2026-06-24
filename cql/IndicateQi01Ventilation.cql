@@ -16,9 +16,12 @@ library "IndicateQi01Ventilation" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
+
 include TimePeriods called T
 include IndicateQiElements called elm
+
 include VentilationProcedures
+include TidalVolumeMeasurements
 
 code "ARDS Condition": '4195694' from elm.OMOPSV // ICD10 based code: '45552897'
 
@@ -75,60 +78,6 @@ code "Inspiratory Pressure Setting": '4215838' from elm.OMOPSV
 // unit cmH2O. Converted to cm[H2O] in "Peak Inspiratory Pressure
 // Measurements".
 code "Peak Inspiratory Pressure Measurement": '4101694' from elm.OMOPSV
-
-code "Tidal Volume Inspiratory Measurement":                                                                                '44782826' from elm.OMOPSV
-code "Tidal Volume Spontaneuous Measurement":                                                                               '4108448'  from elm.OMOPSV
-code "Tidal Volume Setting Measurement":                                                                                    '3012410'  from elm.OMOPSV
-code "Tidal Volume General Measurement":                                                                                    '4029625'  from elm.OMOPSV
-code "Expiratory tidal volume":                                                                                             '44782827' from elm.OMOPSV
-code "Mandatory tidal volume":                                                                                              '4353946'  from elm.OMOPSV
-code "Tidal volume Ventilator --on ventilator":                                                                             '21490854' from elm.OMOPSV
-code "Tidal volume expired Respiratory system airway":                                                                      '21490752' from elm.OMOPSV
-code "Tidal volume expired Respiratory system airway --on ventilator":                                                      '21490789' from elm.OMOPSV
-code "Tidal volume expired spontaneous corrected for compressible gas volume Respiratory system airway --on ventilator":    '3011767'  from elm.OMOPSV
-code "Tidal volume expired spontaneous uncorrected for compressible gas volume setting Ventilator":                         '3020572'  from elm.OMOPSV
-code "Tidal volume expired spontaneous+mechanical Respiratory system airway --on ventilator":                               '3015016'  from elm.OMOPSV
-code "Tidal volume expired spontaneous+mechanical corrected for compressible gas volume --on ventilator":                   '3009097'  from elm.OMOPSV
-code "Tidal volume inspired spontaneous+mechanical --on ventilator":                                                        '3033780'  from elm.OMOPSV
-code "Tidal volume inspired spontaneous+mechanical Measured --on ventilator":                                               '3016166'  from elm.OMOPSV
-code "Tidal volume inspired spontaneous+mechanical corrected for compressible gas volume --on ventilator":                  '3021470'  from elm.OMOPSV
-code "Tidal volume sigh spontaneous+mechanical --on ventilator":                                                            '3008805'  from elm.OMOPSV
-code "Tidal volume.inspired":                                                                                               '36303816' from elm.OMOPSV
-code "Tidal volume.spontaneous --on ventilator":                                                                            '3017594'  from elm.OMOPSV
-code "Tidal volume.spontaneous+mechanical --on ventilator":                                                                 '3004732'  from elm.OMOPSV
-code "Tidal volume.spontaneous+mechanical corrected for compressible gas volume --on ventilator":                           '3007828'  from elm.OMOPSV
-code "Tidal volume.spontaneous+mechanical uncorrected for compressible gas volume --on ventilator":                         '3017707'  from elm.OMOPSV
-code "Tidal volume.spontaneous+mechanical/Body weight [Volume/mass] --on ventilator":                                       '3017878'  from elm.OMOPSV
-code "Tidal volume.spontaneous+mechanical/Body weight [Volume/mass] corrected for compressible gas volume --on ventilator": '3016864'  from elm.OMOPSV
-code "Tidal volume.spontaneous/Body weight [Volume/mass] --on ventilator":                                                  '3017054'  from elm.OMOPSV
-
-concept "Tidal Volume Measurement": {
-  "Tidal Volume Inspiratory Measurement",
-  "Tidal Volume Spontaneuous Measurement",
-  "Tidal Volume Setting Measurement",
-  "Tidal Volume General Measurement",
-  "Expiratory tidal volume",
-  "Mandatory tidal volume",
-  "Tidal volume Ventilator --on ventilator",
-  "Tidal volume expired Respiratory system airway",
-  "Tidal volume expired Respiratory system airway --on ventilator",
-  "Tidal volume expired spontaneous corrected for compressible gas volume Respiratory system airway --on ventilator",
-  "Tidal volume expired spontaneous uncorrected for compressible gas volume setting Ventilator",
-  "Tidal volume expired spontaneous+mechanical Respiratory system airway --on ventilator",
-  "Tidal volume expired spontaneous+mechanical corrected for compressible gas volume --on ventilator",
-  "Tidal volume inspired spontaneous+mechanical --on ventilator",
-  "Tidal volume inspired spontaneous+mechanical Measured --on ventilator",
-  "Tidal volume inspired spontaneous+mechanical corrected for compressible gas volume --on ventilator",
-  "Tidal volume sigh spontaneous+mechanical --on ventilator",
-  "Tidal volume.inspired",
-  "Tidal volume.spontaneous --on ventilator",
-  "Tidal volume.spontaneous+mechanical --on ventilator",
-  "Tidal volume.spontaneous+mechanical corrected for compressible gas volume --on ventilator",
-  "Tidal volume.spontaneous+mechanical uncorrected for compressible gas volume --on ventilator",
-  "Tidal volume.spontaneous+mechanical/Body weight [Volume/mass] --on ventilator",
-  "Tidal volume.spontaneous+mechanical/Body weight [Volume/mass] corrected for compressible gas volume --on ventilator",
-  "Tidal volume.spontaneous/Body weight [Volume/mass] --on ventilator"
-}
 
 // PEEP Tables
 
@@ -298,7 +247,12 @@ define function "Ventilation Mode"(targetTime DateTime):
              end
 
 define "Usable Tidal Volume Measurements":
-  [Measurement: "Tidal Volume Measurement"] m
+  // Select Tidal Volume measurements according to the "Tidal volume (Vt)"
+  // (322) concept set. All concept in that concept use the unit mL for the
+  // measurements.  We Do not retrieve measurements according to the "Tidal
+  // volume per body weight (Vt/kg)" concept set since such measurements are
+  // uncommon and would require scaling with the (actual) body weight.
+  [Measurement: TidalVolumeMeasurements."Tidal Volume Measurements"] m
     // TODO(moringenj): introduce a function for this
     // TODO(moringenj): make error/warning/ignore behavior configurable
     where     if m.unitConcept is null then

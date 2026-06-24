@@ -67,10 +67,13 @@ concept "PEEP Measurement": {
 
 code "Plateau Pressure Measurement": '44782825' from elm.OMOPSV
 
-// TODO(moringenj): could be some other unit of pressure measurement
-// Unit cmH2O
+// Unit: usually cmH2O but may be some other pressure unit.  Converted to
+// cm[H2O] in "Peak Inspiratory Pressure Measurements".
 code "Inspiratory Pressure Setting": '4215838' from elm.OMOPSV
-// Unit mmHg, CAVE different units, has to be converted to unit cmH2O
+
+// Unit: usually mmHg (different for CAVE).  Has to be converted to
+// unit cmH2O. Converted to cm[H2O] in "Peak Inspiratory Pressure
+// Measurements".
 code "Peak Inspiratory Pressure Measurement": '4101694' from elm.OMOPSV
 
 code "Tidal Volume Inspiratory Measurement":                                                                                '44782826' from elm.OMOPSV
@@ -155,8 +158,8 @@ define function "High PEEP for FiO2"(FiO2 Quantity):
 
 context Patient
 
-// Sorted in reverse chronological order for "Last Observation Carried Forward"
-// logic below.
+// Sorted in reverse chronological order for "Last Observation Carried
+// Forward" (LOCF) logic below.
 define "PaO2 Measurements":
   [Measurement: "PaO2 Measurement"] m
     return all m
@@ -172,7 +175,9 @@ define "PaO2/FiO2 (Horowitz index) Measurements":
     return all m
     sort by measurementDatetime desc
 
-// TODO: comment why not sorted like the others
+// This is not sorted like the other measurements because the PEEP
+// measurements dictate the timing and the other measurements are carried
+// forward to align with the PEEP measurements.
 define "PEEP Measurements":
   [Measurement: "PEEP Measurement"] m
     return all m
@@ -183,18 +188,23 @@ define "Plateau Pressure Measurements":
     return all m
     sort by measurementDatetime desc
 
+// Merge data from the measurement and observation domains by
+// converting to Quantity.  Sort in descending order for LOCF logic.
+// Convert to cm[H2O].
 define "Peak Inspiratory Pressure Measurements":
   (Flatten({
      ([Measurement: "Peak Inspiratory Pressure Measurement"] m
         return all {
           datetime: convert m to DateTime,
+          // TODO(moringenj): use an error-checking conversion
           quantity: convert (convert m to Quantity) to 'cm[H2O]'
         }
      ),
      ([Observation: "Inspiratory Pressure Setting"] o
         return all {
           datetime: convert o to DateTime,
-          quantity: convert o to Quantity
+          // TODO(moringenj): use an error-checking conversion
+          quantity: convert (convert o to Quantity) to 'cm[H2O]'
         }
      )
    })) q
@@ -210,35 +220,67 @@ define "Intubation Tube Exposures":
 define "ARDS Conditions":
   [ConditionOccurrence: "ARDS Condition"]
 
+// In CQL
+//
+//   @2026-06-17T10:11:12 same or before @2026-06-17T10:11:12 => true
+//   @2026-06-17T10:11:13 same or before @2026-06-17T10:11:12 => false
+//
+// but
+//
+//   @2026-06-17T10:11 same or before @2026-06-17T10:11:12 => null
+//
+// In this use case, we want the third example to evaluate to true.  For
+// greater precision mismatches, we want false.
+define function "Same or Before with Minute Precision"(earlier DateTime,
+                                                       later   DateTime):
+  (1) _
+    let fullPrecisionResult:   earlier same or before later,
+        minutePrecisionResult: earlier same minute or before later
+      return case
+               when fullPrecisionResult is not null then
+                 fullPrecisionResult
+               when minutePrecisionResult is not null then
+                 minutePrecisionResult
+               else
+                 false
+             end
+
 // Last Observation Carried Forward
 define function "PaO2 LOCF"(targetTime DateTime):
   First("PaO2 Measurements" m
-          // TODO(moringenj): change this to available precision
-          where (convert m to DateTime) same hour or before targetTime
+          where "Same or Before with Minute Precision"(
+                  convert m to DateTime,
+                  targetTime
+                )
           return all m)
 
 define function "FiO2 LOCF"(targetTime DateTime):
   First("FiO2 Measurements" m
-  // TODO(moringenj): change this to available precision
-          where (convert m to DateTime) same hour or before targetTime
+          where "Same or Before with Minute Precision"(
+                  convert m to DateTime,
+                  targetTime
+                )
           return all m)
 
 define function "PaO2/FiO2 LOCF"(targetTime DateTime):
   First("PaO2/FiO2 (Horowitz index) Measurements" m
-          // TODO(moringenj): change this to available precision
-          where (convert m to DateTime) same hour or before targetTime
+          where "Same or Before with Minute Precision"(
+                  convert m to DateTime,
+                  targetTime
+                )
           return all m)
 
 define function "Plateau Pressure Measurement LOCF"(targetTime DateTime):
   First("Plateau Pressure Measurements" m
-  // TODO(moringenj): change this to available precision
-          where (convert m to DateTime) same hour or before targetTime
+          where "Same or Before with Minute Precision"(
+                  convert m to DateTime,
+                  targetTime
+                )
           return all m)
 
 define function "Peak Inspiratory Pressure LOCF"(targetTime DateTime):
   First("Peak Inspiratory Pressure Measurements" m
-  // TODO(moringenj): change this to available precision
-          where m.datetime same hour or before targetTime
+          where "Same or Before with Minute Precision"(m.datetime, targetTime)
           return all m.quantity)
 
 define function "Ventilation Mode"(targetTime DateTime):
@@ -257,6 +299,8 @@ define function "Ventilation Mode"(targetTime DateTime):
 
 define "Usable Tidal Volume Measurements":
   [Measurement: "Tidal Volume Measurement"] m
+    // TODO(moringenj): introduce a function for this
+    // TODO(moringenj): make error/warning/ignore behavior configurable
     where     if m.unitConcept is null then
                 // TODO(moringenj): include the measurement in the message once we have ToString for Measurement
                 Message(false, true, '400', 'Warning', 'Tidal volume measurement does not have a unit')
@@ -281,8 +325,7 @@ define function "Tidal Volume LOCF"(targetTime DateTime):
           where m same hour or before targetTime
           return all m)
 
-// PaO2 unit mm[Hg]
-// FiO2 unit %
+// PaO2 unit mm[Hg], FiO2 unit %.  This function produces mm[Hg].
 define function "Ensure PaO2/FiO2"(peepTime DateTime):
   (1) _
     let "PaO2/fiO2": "PaO2/FiO2 LOCF"(peepTime)
@@ -294,10 +337,15 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
                      paO2Time: (convert paO2 to DateTime),
                      // TODO(moringenj): is this correct for fiO2?
                      fiO2:     "FiO2 LOCF"(peepTime)
+                   // If the paO2 measurement is within 6 hours of the
+                   // PEEP measurement, use the paO2 and fiO2
+                   // measurements.  Otherwise assume mild ARDS by
+                   // returning 300 'mm[Hg]' which is classified as mild
+                   // below.
                    return if (duration in hours between paO2Time and peepTime) < 6 then
                             paO2 / fiO2
                           else
-                            300 'mm[Hg]' // TODO(moringenj): explain this
+                            300 'mm[Hg]'
 
 define function "Is mild ARDS"("PaO2/FiO2" Quantity):
   "PaO2/FiO2" > 200 'mm[Hg]'
@@ -314,6 +362,7 @@ define function "Recommended PEEP for PaO2"(peepTime DateTime):
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
     let tidalVolumeQuantity:  convert tidalVolume to Quantity,
+        // TODO(moringenj): use an error-checking conversion
         tidalVolumeValue:     (convert tidalVolumeQuantity to 'mL').value,
         tidalVolumeTime:      convert tidalVolume to DateTime,
         // The function returns the ideal body weight converted/scaled to kg/m
@@ -328,14 +377,13 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
                                    8 * idealBodyWeightValue
                                  ]
 
-define function "Effective Plateau Pressure"(peepMeasurement Measurement): // TODO(moringenj): pass only time
+define function "Effective Plateau Pressure"(peepTime DateTime):
   (1) _
-    let peepMeasurementTime:        convert peepMeasurement to DateTime,
-        ventilationMode:            "Ventilation Mode"(peepMeasurementTime),
-        plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepMeasurementTime)
+    let ventilationMode:            "Ventilation Mode"(peepTime),
+        plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepTime)
       return if     plateauPressureMeasurement is null
                 and ventilationMode = 'Pressure Driven' then
-               "Peak Inspiratory Pressure LOCF"(peepMeasurementTime)
+               "Peak Inspiratory Pressure LOCF"(peepTime)
              else
                plateauPressureMeasurement
 
@@ -344,7 +392,7 @@ define function "Is Conforming PEEP"(peepMeasurement Measurement):
     let peepQuantity:       convert peepMeasurement to Quantity,
         peepTime:           convert peepMeasurement to DateTime,
         tidalVolume:        "Tidal Volume LOCF"(peepTime),
-        plateauPressure:    "Effective Plateau Pressure"(peepMeasurement),
+        plateauPressure:    "Effective Plateau Pressure"(peepTime),
         pressureDifference: plateauPressure - peepQuantity,
         recommendedPEEP:    "Recommended PEEP for PaO2"(peepTime)
       return     peepQuantity >= recommendedPEEP

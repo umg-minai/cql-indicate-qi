@@ -23,8 +23,19 @@ def generate_library_for_category(concept_sets,
             and en.get("category") == category \
             and en.get("subcategory") == subcategory
     relevant_concept_sets = [concept_set for concept_set in concept_sets if is_matching_concept_set(concept_set)]
+    write_library(relevant_concept_sets,
+                  library_name,
+                  concept_definition_name,
+                  repository_url,
+                  commit)
 
-    write_drugs_to_file(relevant_concept_sets,
+
+def write_library(concept_sets,
+                  library_name,
+                  concept_definition_name,
+                  repository_url,
+                  commit):
+    write_drugs_to_file(concept_sets,
                         f"../../cql/{library_name}.cql",
                         library_name,
                         concept_definition_name,
@@ -103,6 +114,16 @@ def main():
                                   'Anticoagulation Drugs',
                                   repository_url,
                                   commit)
+
+    # Concept set "Tidal volume (Vt)" (322) which indicates
+    # measurements with unit mL.  Don't include "Tidal volume per body
+    # weight (Vt/kg)" (362) since that concept set uses the unit
+    # mL/kg.
+    write_library([ concept_sets[322] ],
+                  'TidalVolumeMeasurements',
+                  'Tidal Volume Measurements',
+                  repository_url,
+                  commit)
 
     return None
 

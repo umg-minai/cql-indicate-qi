@@ -1,9 +1,9 @@
-// This library contains functions for computing from DrugExposure entrie the
+// This library contains functions for computing from DrugExposure entries the
 // effective amount of administered insulin in [IU].
 //
 // The computation is complicated by the fact that insulin drugs often contain
 // multiple ingredients only some of which are insulin variants. Furthermore,
-// the DrugStrength entries for the insulin ingredient use different units and
+// the DrugStrength entries for the insulin ingredients use different units and
 // need to be converted to [IU].
 
 library "InsulinStrength" version '0.0.0'
@@ -25,7 +25,7 @@ define function "Insulin in mg to IU"(quantity Quantity):
 // expressed in international units and an indication of whether the
 // quantity describes an amount per volume or just an amount.
 //
-// The conversion are
+// The conversions are
 // * x [hp_X]  -> 0 [IU], not per volume
 // * x mg      -> y [IU], not per volume
 // * x mg/ml   -> y [IU],     per volume
@@ -41,14 +41,16 @@ define function "Insulin in mg to IU"(quantity Quantity):
 // because the UCUM service does not recognize that unit.
 define function "Insulin Amount in IU"(quantity Quantity):
   case
-    // When the amount is specific as homeopathic dilution factor, we
+    // When the amount is specific as a homeopathic dilution factor, we
     // assume that there is no biological effect.
     //
     // Note: [hp_X] is dimensionless so can't use
     //
     //   convert quantity to '[hp_X]'
     //
-    // to detect it. The best we can do is look for the literal unit name.
+    // to detect it since that conversion would succeed for quantities
+    // expressed in [IU], which is also dimensionless, as well. The best we
+    // can do is look for the literal unit name.
     when quantity.unit = '[hp_X]' then
       {
         quantity:  0 '[IU]',

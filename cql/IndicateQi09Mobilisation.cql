@@ -53,6 +53,7 @@ define "Visit Results":
         periods:                     visitWithPeriods.allPeriods
       return all (periods) period
                    let hasMobilisation: "Has Mobilisation"(period),
+                       // TODO(moringenj): This is about an order not to mobilize
                        noMobilisation:  "Has Order to not Mobilise"(period)
                      return all elm."Period Result"(
                        period,

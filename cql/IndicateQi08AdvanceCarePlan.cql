@@ -27,6 +27,7 @@ define "Advance Care Plan Agreed Observations":
     return all o
     sort by observationDatetime
 
+// TODO(moringenj): most (all) of these are in the procedure domain
 define "Consultation with Patient Observations":
   [Observation: "Consultation with Patient"] o
     return all o
@@ -38,6 +39,9 @@ define "Decision Authority Documented Observations":
     sort by observationDatetime
 
 define function "Is Conforming Visit"(period Interval<DateTime>):
+  // TODO(moringenj): shouldn't this be
+  // Advance care plan agreed" AND "Consultation with patient" OR ("decision authority documented" OR "consultation with relatives")
+  // Ask Sebastian
   (1) _
     let "First 72 hours": Interval[start of period,
                                    start of period + 72 hours]
@@ -59,6 +63,7 @@ define "Visit Results":
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
         conformingVisit:             "Is Conforming Visit"(visitInterval),
+        // TODO(moringenj): This is unused
         periodCount:                 Count(visitWithPeriods.periods)
       return all (visitWithPeriods.periods) period
                    return all elm."Period Result"(

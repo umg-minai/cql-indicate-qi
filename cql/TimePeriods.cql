@@ -68,6 +68,9 @@ define function "24-hour Periods during Period"(periodInterval Interval<DateTime
   (1) _
     let periodStartDay:   date from start of periodInterval,
         periodEnd:        end of periodInterval,
+        // TODO(moringenj): use "Shift Start within Day"
+        // TODO(moringenj); ensure that (24 h mod shiftDuration) = 0
+        // Why? So that shifts and 24-hour periods align properly
         firstPeriodStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
         dayDuration:      Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
       return if firstPeriodStart before periodEnd then

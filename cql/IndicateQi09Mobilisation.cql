@@ -13,14 +13,14 @@ include OMOPHelpers
 include TimePeriods called T
 include IndicateQiElements called elm
 
-code Mobilisation: '4327195' from elm.OMOPSV
+include MobilizationProcedures
 
 code "Order to not Mobilise": '2100000008' from elm.OMOPSV
 
 context Patient
 
 define "Mobilisation Procedures":
-  [ProcedureOccurrence: "Mobilisation"] p
+  [ProcedureOccurrence: MobilizationProcedures."Mobilization Procedures"] p
     return all p
     sort by procedureDatetime asc
 

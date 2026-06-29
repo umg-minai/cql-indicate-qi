@@ -60,7 +60,8 @@ def write_drugs_to_file(concept_sets,
         concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} direct entries) [modified {concept_set_modification_date}]\n"
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically from
-// commit {commit} or {repository_url}
+// commit {commit} of
+// {repository_url}
 {concept_sets_comments}
 // Do not edit
 

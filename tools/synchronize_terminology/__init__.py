@@ -1,55 +1,21 @@
 import json
 import pathlib
-import subprocess
 import sys
 
 sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
 from data_dictionary import load_resolved_concept_sets
+from cql import retrieve_used_concepts
+from analysis import concept_set_usage
 
 UI_URL = "https://indicate-eu.github.io/data-dictionary"
 PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary/blob/main/projects/5.json"
 
 ATHENA_URL = "https://athena.ohdsi.org"
 
-def retrieve_cql_data():
-    print("Collecting used concepts from CQL libraries")
-    try:
-        process = subprocess.run(['java',
-                                  '-jar', '../cql-on-omop.jar',
-                                  'terminology', '--resolve-concepts',
-                                  '--omop-version', 'v5.4',
-                                  '-p', '9432', '-u', 'postgres', '--password', 'postgres', '-d', 'omop_cdm', '--schema', 'vocab',
-                                  '-I', '../../cql/',
-                                  'Main'],
-                                  capture_output=True,
-                                  text=True)
-        output = process.stdout
-        if process.returncode != 0:
-            error = process.stderr
-            print(f"Error running cql-on-omop program: \n{error}{output}")
-            return None
-
-        # Assuming the Java program outputs valid JSON
-        try:
-            data = json.loads(output)
-            return data
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-            return None
-    except subprocess.CalledProcessError as e:
-        print(f"Error running cql-on-omop program: {e}")
-        return None
-
-# These concepts are described in INDICATE's general mapping
-# recommendations rather than specific concept sets.
-IGNORED_CONCEPT_IDS = {
-    8532,  # FEMALE
-    8507,  # MALE
-    32037, # Intensive Care
-}
 
 def format_concept_set(concept_set_id, concept_set_name):
     return f"\033]8;;{UI_URL}/#/concept-sets?id={concept_set_id}\033\\{concept_set_name} ({concept_set_id})\033]8;;\033\\"
+
 
 def format_concept(concept_id, concept_name):
     label = concept_name or '«no name»'
@@ -60,57 +26,16 @@ def format_concept(concept_id, concept_name):
     else:
         return f"{label} ({concept_id}, custom concept)"
 
+
 def synchronize():
-    cql_data = retrieve_cql_data()
-    cql_data = [ concept for concept in cql_data
-                 if not concept.get("usingLibraries") == [ "InsulinIngredients" ] ]
     all_concept_sets = load_resolved_concept_sets()[0]
     all_concept_sets = list(all_concept_sets.values())
-    concept_id_to_concept_set = dict()
-    for concept_set in all_concept_sets:
-        for concept in concept_set.get('resolvedConcepts', []):
-            concept_id = concept.get('conceptId')
-            if concept_id in concept_id_to_concept_set:
-                concept_id_to_concept_set[concept_id].append(concept_set)
-            else:
-                concept_id_to_concept_set[concept_id] = [ concept_set ]
     # For concepts that are used in CQL libraries (modulo imperfect
     # precision of the analysis), find the data dictionary concept
     # sets in which the concepts are defined.
-    used_concept_sets = []
-    unmapped_concepts = []
-    for concept in cql_data:
-        concept_id = int(concept.get("id"))
-        if concept_id in IGNORED_CONCEPT_IDS:
-            continue
-        found = False
-        concept_sets = concept_id_to_concept_set.get(concept_id, [])
-        if concept_sets:
-            found = True
-            # If the concept is contained in deprecated concept
-            # sets and non-deprecated concept sets, consider only
-            # the non-deprecated ones.  Otherwise, consider the
-            # deprecated ones as well.
-            relevant_concept_sets = [ concept_set
-                                      for concept_set in concept_sets
-                                      if not concept_set.get("deprecated") ]
-            if not relevant_concept_sets:
-                 relevant_concept_sets = [ concept_set
-                                           for concept_set in concept_sets
-                                           if concept_set.get("deprecated") ]
-            for concept_set in relevant_concept_sets:
-                if not any( old_concept_set for old_concept_set in used_concept_sets
-                            if old_concept_set.get("conceptSetId") == concept_set.get("conceptSetId") ):
-                    used_concept_sets.append(concept_set)
-                used_concepts = None
-                if not 'used_concepts' in concept_set:
-                    used_concepts = dict()
-                    concept_set["used_concepts"] = used_concepts
-                else:
-                    used_concepts = concept_set.get("used_concepts")
-                used_concepts[concept_id] = concept
-        if not found:
-            unmapped_concepts.append(concept)
+    used_concept_sets = retrieve_used_concepts()
+    used_concept_sets, unmapped_concepts \
+        = concept_set_usage(used_concept_sets, all_concept_sets)
 
     print(f"\033[1mThe CQL libraries use {len(used_concept_sets)} of {len(all_concept_sets)} concept sets\033[0m")
     for concept_set in sorted(used_concept_sets, key=lambda concept_set: concept_set.get("name")):

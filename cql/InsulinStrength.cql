@@ -18,6 +18,7 @@ include OMOPFunctions
 // published conversion factor.
 // Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6501531/
 define function "Insulin in mg to IU"(quantity Quantity):
+  // TODO(moringenj): use 28.8
   Quantity{value: 28.7 * (convert quantity to 'mg').value, unit: '[IU]'}
 
 // This function converts an insulin quantity that can be expressed in

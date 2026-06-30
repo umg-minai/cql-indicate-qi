@@ -3,7 +3,9 @@
 //
 // Description:
 //
-//   TODO(moringenj): missing in formal definition
+//   Critically ill adult ICU patients should be mobilised at least once
+//   per eligible ICU day, unless there is a documented order not to
+//   mobilize.
 
 library "IndicateQi09Mobilisation" version '1.0.0'
 
@@ -52,16 +54,15 @@ define "Visit Results":
     let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
         periods:                     visitWithPeriods.allPeriods
       return all (periods) period
-                   let hasMobilisation: "Has Mobilisation"(period),
-                       // TODO(moringenj): This is about an order not to mobilize
-                       noMobilisation:  "Has Order to not Mobilise"(period)
+                   let hasMobilisation:    "Has Mobilisation"(period),
+                       orderToNotMobilize: "Has Order to not Mobilise"(period)
                      return all elm."Period Result"(
                        period,
                        inInitialPopulationForVisit,
                        case
-                         when noMobilisation  then null
-                         when hasMobilisation then 1
-                         else                      0
+                         when orderToNotMobilize then null
+                         when hasMobilisation    then 1
+                         else                         0
                        end,
                        1
                      )

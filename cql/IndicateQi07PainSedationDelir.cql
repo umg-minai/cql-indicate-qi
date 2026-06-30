@@ -19,9 +19,9 @@ include TimePeriods called T
 
 // Pain Assessment
 
-code "Behavioral Pain Scale (Measurement)":           '2100000007' from elm.OMOPSV
-code "Numeric Pain Rating Scale (Measurement)":       '37151627'   from elm.OMOPSV
-code "Visual Analog Pain Scale (Measurement)":        '4165600'    from elm.OMOPSV
+code "Behavioral Pain Scale (Measurement)":     '2100000007' from elm.OMOPSV
+code "Numeric Pain Rating Scale (Measurement)": '37151627'   from elm.OMOPSV
+code "Visual Analog Pain Scale (Measurement)":  '4165600'    from elm.OMOPSV
 
 concept "Pain Assessment Measurement": {
   "Behavioral Pain Scale (Measurement)",
@@ -31,8 +31,8 @@ concept "Pain Assessment Measurement": {
 
 // Sedation Assessment
 
-code "Richmond Agitation Sedation Scale (Measurement)":       '1447532'  from elm.OMOPSV
-code "Ramsay Sedation Scale (Measurement)":                   '4105091'  from elm.OMOPSV
+code "Richmond Agitation Sedation Scale (Measurement)": '1447532'  from elm.OMOPSV
+code "Ramsay Sedation Scale (Measurement)":             '4105091'  from elm.OMOPSV
 
 concept "Sedation Assessment Measurement": {
   "Richmond Agitation Sedation Scale (Measurement)",
@@ -98,11 +98,17 @@ define function "Measurements during Shift with Neighbors"(
 
 define function "Is Conforming Shift"(shift        Interval<DateTime>,
                                       isFirstShift Boolean):
-      "Are Conforming Assessments"("Measurements during Shift with Neighbors"("Pain Assessment Measurements", shift),
+      "Are Conforming Assessments"("Measurements during Shift with Neighbors"(
+                                     "Pain Assessment Measurements", shift
+                                   ),
                                    isFirstShift)
-  and "Are Conforming Assessments"("Measurements during Shift with Neighbors"("Sedation Assessment Measurements", shift),
+  and "Are Conforming Assessments"("Measurements during Shift with Neighbors"(
+                                     "Sedation Assessment Measurements", shift
+                                   ),
                                    isFirstShift)
-  and "Are Conforming Assessments"("Measurements during Shift with Neighbors"("Delirium Assessment Measurements", shift),
+  and "Are Conforming Assessments"("Measurements during Shift with Neighbors"(
+                                     "Delirium Assessment Measurements", shift
+                                   ),
                                    isFirstShift)
 
 // Shifts

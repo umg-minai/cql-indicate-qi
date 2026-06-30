@@ -8,17 +8,26 @@ REPOSITORY_URL  = "https://github.com/indicate-eu/data-dictionary"
 CACHE_DIRECTORY = pathlib.Path(xdg_cache_home())
 CLONE_DIRECTORY = CACHE_DIRECTORY / 'indicate' / 'data-dictionary'
 
+data_dictionary_commit = None
+
 def ensure_data_dictionary_clone():
-    if not CLONE_DIRECTORY.exists():
-        parent = CLONE_DIRECTORY.parent
-        parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['git', 'clone', REPOSITORY_URL], cwd=parent)
+    global data_dictionary_commit
+    if data_dictionary_commit:
+        return CLONE_DIRECTORY, data_dictionary_commit
     else:
-        subprocess.run(['git', 'pull'], cwd=CLONE_DIRECTORY)
-    process = subprocess.run(['git', 'rev-parse', 'HEAD'],
-                             cwd=CLONE_DIRECTORY,
-                             stdout=subprocess.PIPE)
-    return CLONE_DIRECTORY, process.stdout.strip().decode()
+        if not CLONE_DIRECTORY.exists():
+            parent = CLONE_DIRECTORY.parent
+            parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(['git', 'clone', REPOSITORY_URL], cwd=parent)
+        else:
+            subprocess.run(['git', 'pull'], cwd=CLONE_DIRECTORY)
+        process = subprocess.run(['git', 'rev-parse', 'HEAD'],
+                                 cwd=CLONE_DIRECTORY,
+                                 stdout=subprocess.PIPE)
+        data_dictionary_commit = process.stdout.strip().decode()
+        return CLONE_DIRECTORY, data_dictionary_commit
+
+# Concept sets
 
 def load_concept_sets():
     concept_sets = dict()

@@ -49,8 +49,6 @@ code "Delirium Observation Screening (DOS) scale":                        '21000
 code "Delirium Rating Scale-revised-98 (DRS-R-98)":                       '2100000006' from elm.OMOPSV
 code "Intensive Care Delirium Screening Checklist (ICDSC)":               '1447893'    from elm.OMOPSV
 code "Nursing Delirium Screening Scale (Nu-DESC)":                        '2100000005' from elm.OMOPSV
-// TODO(moringenj): Glasgow Coma Score is not used anywhere
-code "Glasgow Coma Score Total":                                          '3007194'    from elm.OMOPSV
 
 concept "Delirium Assessment Measurement": {
   "3-minute Diagnostic Interview for CAM-defined Delirium (3D-CAM)",
@@ -60,8 +58,7 @@ concept "Delirium Assessment Measurement": {
   "Delirium Observation Screening (DOS) scale",
   "Delirium Rating Scale-revised-98 (DRS-R-98)",
   "Intensive Care Delirium Screening Checklist (ICDSC)",
-  "Nursing Delirium Screening Scale (Nu-DESC)",
-  "Glasgow Coma Score Total"
+  "Nursing Delirium Screening Scale (Nu-DESC)"
 }
 
 context Patient

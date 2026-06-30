@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
-import data_dictionary.load
+from data_dictionary import load_resolved_concept_sets
 
 UI_URL = "https://indicate-eu.github.io/data-dictionary"
 PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary/blob/main/projects/5.json"
@@ -64,7 +64,7 @@ def synchronize():
     cql_data = retrieve_cql_data()
     cql_data = [ concept for concept in cql_data
                  if not concept.get("usingLibraries") == [ "InsulinIngredients" ] ]
-    all_concept_sets = data_dictionary.load.load_resolved_concept_sets()[0]
+    all_concept_sets = load_resolved_concept_sets()[0]
     all_concept_sets = list(all_concept_sets.values())
     concept_id_to_concept_set = dict()
     for concept_set in all_concept_sets:

@@ -4,7 +4,7 @@ import pathlib
 import sys
 
 sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
-import data_dictionary.load
+from data_dictionary import load_concept_sets
 
 
 def generate_library_for_category(concept_sets,
@@ -97,8 +97,7 @@ include IndicateQiElements called E
 
 def main():
     """Main function to fetch data and generate libraries."""
-    concept_sets, repository_url, commit \
-        = data_dictionary.load.load_concept_sets()
+    concept_sets, repository_url, commit = load_concept_sets()
 
     generate_library_for_category(concept_sets.values(),
                                   "Medications",

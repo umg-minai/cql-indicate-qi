@@ -16,9 +16,19 @@ include TimePeriods called T
 
 code "Advance Care Plan Agreed": '36685263' from elm.OMOPSV
 
-code "Consultation with Patient": '37164964' from elm.OMOPSV
+code "Consultation with Patient":              '37164964' from elm.OMOPSV
+code "Face to Face Consultation with Patient": '37168078' from elm.OMOPSV
+code "New Patient Consultation":               '4089048'  from elm.OMOPSV
 
-code "Decision Authority Documented": '1032192' from elm.OMOPSV
+concept "Consultation with Patient Observation": {
+  "Consultation with Patient",
+  "Face to Face Consultation with Patient",
+  "New Patient Consultation"
+}
+
+code "Discussion about Care Plan with Family": '4247376' from elm.OMOPSV
+
+code "Decision Authority Documented": '45877806' from elm.OMOPSV
 
 context Patient
 
@@ -27,9 +37,13 @@ define "Advance Care Plan Agreed Observations":
     return all o
     sort by observationDatetime
 
-// TODO(moringenj): most (all) of these are in the procedure domain
 define "Consultation with Patient Observations":
-  [Observation: "Consultation with Patient"] o
+  [Observation: "Consultation with Patient Observation"] o
+    return all o
+    sort by observationDatetime
+
+define "Discussion about Care Plan with Family Observations":
+  [Observation: "Discussion about Care Plan with Family"] o
     return all o
     sort by observationDatetime
 
@@ -39,16 +53,15 @@ define "Decision Authority Documented Observations":
     sort by observationDatetime
 
 define function "Is Conforming Visit"(period Interval<DateTime>):
-  // TODO(moringenj): shouldn't this be
-  // Advance care plan agreed" AND "Consultation with patient" OR ("decision authority documented" OR "consultation with relatives")
-  // Ask Sebastian
   (1) _
     let "First 72 hours": Interval[start of period,
                                    start of period + 72 hours]
       return     Exists("Advance Care Plan Agreed Observations" o
                           where o in "First 72 hours")
-             and Exists("Consultation with Patient Observations" o
-                          where o in "First 72 hours")
+             and (   Exists("Consultation with Patient Observations" o
+                              where o in "First 72 hours")
+                  or Exists("Discussion about Care Plan with Family Observations" o
+                              where o in "First 72 hours"))
              and Exists("Decision Authority Documented Observations" o
                           where o in "First 72 hours")
 
@@ -62,9 +75,7 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
-        conformingVisit:             "Is Conforming Visit"(visitInterval),
-        // TODO(moringenj): This is unused
-        periodCount:                 Count(visitWithPeriods.periods)
+        conformingVisit:             "Is Conforming Visit"(visitInterval)
       return all (visitWithPeriods.periods) period
                    return all elm."Period Result"(
                      period,

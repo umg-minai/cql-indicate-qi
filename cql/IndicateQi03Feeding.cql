@@ -22,6 +22,7 @@ include InsulinIngredients
 include InsulinStrength
 
 
+// TODO(moringenj): unit should be cal/d
 // unit [cal]
 code "Energy Requirement":                                '4022415' from elm.OMOPSV
 code "Estimated required quantity of energy in 24 hours": '604877' from elm.OMOPSV
@@ -34,6 +35,7 @@ concept "Energy Requirement (Observation)": {
 // TODO(moringenj): not yet used
 code "Contraindication to Enteral Feeding": '2100000009' from elm.OMOPSV // observation
 
+// TODO(moringenj): unit should be cal/d
 // unit [cal]
 code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV
 
@@ -61,6 +63,7 @@ concept "Phosphate Measurement": {
   "Phosphate in Blood (Mass/volume)"
 }
 
+// TODO(moringenj): remove alias
 define "Insulin Drugs": InsulinDrugs."Insulin Drugs"
 
 context Patient
@@ -93,7 +96,7 @@ define "Renal Replacement Therapy Procedures":
 define function "Convert g/L to mmol/L"(quantity Quantity):
   (1) _
     let scaled: convert quantity to 'mg/L'
-      return Quantity{value: 0.0323 * scaled.value, unit: 'mmol/L'}
+      return Quantity{value: 0.0323 * scaled.value, unit: 'mmol/L'} // TODO(moringenj): check factor
 
 define function "Ensure Phosphate in mmol/L"(phosphate Quantity):
   case
@@ -118,10 +121,12 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
              else
                "Ensure Phosphate in mmol/L"(convert lastMeasurement to Quantity)
 
+// TODO(moringenj): rename to sum/total/cumulative insulin rate
 define function "Max Insulin Rate in Period"(period Interval<DateTime>):
   (1) _
     let totalInsulin: Sum("Insulin Exposures" e
                             where (convert e to Interval<DateTime>) overlaps period
+                            // TODO(moringenj): scale with amount of overlap
                             return all InsulinStrength."Insulin Exposure"(
                               e,
                               InsulinIngredients."Insulin Ingredient Concepts"
@@ -133,6 +138,8 @@ define function "Max Insulin Rate in Period"(period Interval<DateTime>):
       return totalInsulin / periodHours
 
 define function "Last Energy Requirement Observation in Period"(period Interval<DateTime>):
+  // TODO(moringenj): ensure unit cal/d. rewrite x cal -> x cal/d if necessary
+  // TODO(moringenj): shouldn't this return a System.Quantity?
   Last("Energy Requirement Observations" o
          where o.observationDatetime in period
          return all o)
@@ -144,14 +151,18 @@ define function "Median CO2 Production Rate in Period"(period Interval<DateTime>
 
 define function "Calorie Intake in Period"(period Interval<DateTime>):
   // There should be exactly one such measurement in each 24-hour period.
+  // TODO(moringenj): explain why First
+  // TODO(moringenj): warn if there are multiple measurements
   (1) _
     let measurement: First("Calorie Intake Measurements" m
                              where m in period
                              return all m)
+      // TODO(moringenj): ensure unit cal/d. rewrite x cal -> x cal/d if necessary
       return convert measurement to Quantity
 
 define function "Renal Replacement Therapy Procedure in Period"(period Interval<DateTime>):
   Exists("Renal Replacement Therapy Procedures" p
+           // TODO(moringenj): maybe change to overlaps
            where (convert p to Interval<DateTime>) during period
            return all p)
 
@@ -160,7 +171,10 @@ define function "Renal Replacement Therapy Procedure in Period"(period Interval<
 define function "Initial Calorie Target via CO2 Production Rate"(previousPeriod Interval<DateTime>):
   (1) _
     let bodyMassIndex: elm."Body Mass Index Before"(end of previousPeriod)
+      // TODO(moringenj): what happens if this is null?
+      // E.g.  Quantity{value: null, unit: '1'} => System.Quantity null '1'
       return Quantity{
+               // TODO(moringenj): scale to ml/min before taking .value
                value: "Median CO2 Production Rate in Period"(previousPeriod).value
                       * 8.19
                       * if bodyMassIndex < 30 'kg/m2' then
@@ -189,7 +203,7 @@ define function "Initial Calorie Target via BMI"(targetTime DateTime):
                    let bodyHeightInM: convert (convert bodyHeight to Quantity) to 'm'
                      return 24 'kcal/d/kg'
                             * Quantity{
-                                // TODO(moringenj): use existing "Ideal Body Weight"
+                                // TODO(moringenj): use existing "Ideal Body Weight" TODO: ask Sebastian
                                 value: (48.4 + 77 * (bodyHeightInM - 1.5 'm').value),
                                 unit:  'kg'
                               }
@@ -197,6 +211,7 @@ define function "Initial Calorie Target via BMI"(targetTime DateTime):
                  null
              end
 
+// TODO(moringenj): explain what this computes and in particular the unit
 define function "Initial Calorie Target"(previousDay Interval<DateTime>):
   (1) _
     // TODO(moringenj): what temporal interval should we consider for the energy requirement?
@@ -254,6 +269,7 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
                                    else // TODO(moringenj): should be unreachable
                                      Message(null, true, '400', 'Error', 'No matching case; insulin ' + ToString(previousMaxInsulin) + ' previous target ' + ToString(previousTarget))
                                  end
+      // TODO(moringenj): Wait for Sebastian's approval
       // Clamp calorie target to [0, Initial Calorie Target]; the
       // value could be outside of this range due to the unchecked
       // additions and subtractions above.
@@ -265,7 +281,7 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                                       previousTarget: null,
                                       dayOfVisit:     0,
                                       results:        {},
-                                      debug:          {}
+                                      debug:          {} // TODO(moringenj): remove
                                     }):
     (1) _
       let target: "Calorie Target for 24-hour Period"(
@@ -274,6 +290,7 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                     p,
                     r.dayOfVisit
                   ),
+          // TODO(moringenj): explain what happens if there is no actual calorie intake
           actual: "Calorie Intake in Period"(p),
           result: 0.9 * target <= actual and actual <= 1.1 * target
         return {

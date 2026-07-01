@@ -1,4 +1,3 @@
-import json
 import pathlib
 import sys
 
@@ -7,8 +6,9 @@ from data_dictionary import load_resolved_concept_sets
 from cql import retrieve_used_concepts
 from analysis import concept_set_usage
 
+
 UI_URL = "https://indicate-eu.github.io/data-dictionary"
-PROJECT_INFO_URL = "https://github.com/indicate-eu/data-dictionary/blob/main/projects/5.json"
+
 
 ATHENA_URL = "https://athena.ohdsi.org"
 
@@ -77,9 +77,6 @@ def synchronize():
                 sorted(used_concepts.values(), key=lambda concept: concept.get("name")),
                 print_used)
             print("\033[0m", end="")
-
-    print(f"\n\033[1mJSON-formatted for updating \033]8;;{PROJECT_INFO_URL}\033\\{PROJECT_INFO_URL}\033]8;;\033\\:\033[0m")
-    print(f"  {json.dumps(sorted( concept_set.get('conceptSetId') for concept_set in used_concept_sets))}")
 
     if unmapped_concepts:
         print(f"\n\033[33mThe following {len(unmapped_concepts)} concept(s) are used by CQL libraries but are not contained in any concept set:\033[0m")

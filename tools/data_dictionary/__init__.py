@@ -1,34 +1,57 @@
-from xdg import xdg_cache_home
+import xdg
 import pathlib
 import subprocess
 import json
 import glob
 
+
 REPOSITORY_URL  = "https://github.com/indicate-eu/data-dictionary"
-CACHE_DIRECTORY = pathlib.Path(xdg_cache_home())
+CACHE_DIRECTORY = pathlib.Path(xdg.xdg_cache_home())
 CLONE_DIRECTORY = CACHE_DIRECTORY / 'indicate' / 'data-dictionary'
+
 
 VERSIONS_FILE = "concept_sets_versions.json"
 
+
 PROJECTS_DIRECTORY = "projects"
+
 
 data_dictionary_commit = None
 
-def ensure_data_dictionary_clone():
+
+def ensure_data_dictionary_clone(timeout=60):
     global data_dictionary_commit
     if data_dictionary_commit:
         return CLONE_DIRECTORY, data_dictionary_commit
     else:
+        def run_git(cwd, *args):
+            try:
+                process = subprocess.run(['git'] + list(args),
+                                         cwd=cwd,
+                                         env={'GIT_TERMINAL_PROMPT': '0'},
+                                         capture_output=True,
+                                         check=True,
+                                         timeout=timeout)
+                return process.stdout
+            except subprocess.CalledProcessError as e:
+                output = str(e.stdout, encoding='UTF8')
+                error = str(e.stderr, encoding='UTF8')
+                message = f"Git operation {e.cmd} failed with code {e.returncode} and output\n{output}\n{error}"
+                raise RuntimeError(message) from None
+            except subprocess.TimeoutExpired as e:
+                output = str(e.stdout, encoding='UTF8')
+                error = str(e.stderr, encoding='UTF8')
+                message = f"Git operation {e.cmd} timed out after {e.timeout} seconds with output\n{output}\n{error}"
+                raise RuntimeError(message) from None
+
         if not CLONE_DIRECTORY.exists():
             parent = CLONE_DIRECTORY.parent
             parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(['git', 'clone', REPOSITORY_URL], cwd=parent)
+            run_git(parent, 'clone', REPOSITORY_URL)
         else:
-            subprocess.run(['git', 'pull'], cwd=CLONE_DIRECTORY)
-        process = subprocess.run(['git', 'rev-parse', 'HEAD'],
-                                 cwd=CLONE_DIRECTORY,
-                                 stdout=subprocess.PIPE)
-        data_dictionary_commit = process.stdout.strip().decode()
+            run_git(CLONE_DIRECTORY, 'pull')
+        output = run_git(CLONE_DIRECTORY, 'rev-parse', 'HEAD')
+        data_dictionary_commit = output.strip().decode()
         return CLONE_DIRECTORY, data_dictionary_commit
 
 # Concept sets
@@ -44,6 +67,7 @@ def load_concept_sets():
     print(f"Read {len(concept_sets)} concept sets at commit {commit}")
     return concept_sets, REPOSITORY_URL, commit
 
+
 def load_resolved_concept_sets(add_names=True):
     concept_sets = dict()
     directory, commit = ensure_data_dictionary_clone()
@@ -52,15 +76,15 @@ def load_resolved_concept_sets(add_names=True):
             resolved_concept_set = json.load(file)
         concept_set_id = resolved_concept_set.get('conceptSetId')
         if add_names:
-            # The resolved concept sets don't contain names. Get the name
+            # The resolved concept sets don't contain names.  Get the name
             # from the corresponding non-resolved concept set.
             with open(f"{directory}/concept_sets/{concept_set_id}.json") as file:
                 concept_set = json.load(file)
-                resolved_concept_set['name'] = concept_set.get('name')
                 metadata = concept_set.get('metadata', {})
-                resolved_concept_set['deprecated'] = metadata.get('reviewStatus') == 'deprecated'
                 en = metadata.get('translations', {}).get('en', {})
-                resolved_concept_set['category'] = en.get('category', None)
+                resolved_concept_set['name']        = concept_set.get('name')
+                resolved_concept_set['deprecated']  = metadata.get('reviewStatus') == 'deprecated'
+                resolved_concept_set['category']    = en.get('category', None)
                 resolved_concept_set['subcategory'] = en.get('subcategory', None)
         concept_sets[concept_set_id] = resolved_concept_set
     print(f"Read {len(concept_sets)} resolved concept sets at commit {commit}")

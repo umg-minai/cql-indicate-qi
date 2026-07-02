@@ -111,11 +111,13 @@ define function "Visits and 24-hour Periods during Review Period"(
   ):
   Flatten(
     (visits) v
+      // TODO(moringenj): fix or comment this
       let previousEndPoint: start of reviewPeriod - 10 hours,
           endPoint:         end of reviewPeriod - 10 hours,
           allPeriods:       "24-hour Periods during Period"(v)
         where Exists(allPeriods)
         return all (1) _
+                     // TODO(moringenj): intersect with reviewPeriod; filter if not within visit interval?
                      let periods: (allPeriods) p
                                     where     end of p > previousEndPoint
                                           and end of p <= endPoint
@@ -126,8 +128,9 @@ define function "Visits and 24-hour Periods during Review Period"(
                                        startAndEnd:  Interval(previousEndPoint, endPoint],
 
                                        visit:      v,
+
                                        allPeriods: allPeriods,
-                                       periods:    periods
+                                       periods:    periods // rename: completePeriods
                                      } }
                                    else
                                      // Without the casts, the CQL engine

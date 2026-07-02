@@ -20,6 +20,19 @@ include IndicateQiElements called E
 parameter "Shift Start within Day" Quantity default 6 hours
 parameter "Shift Duration"         Quantity default 8 'h'
 
+// The configured shift duration must divide 24 so that a full 24-hour
+// period can contain a whole number of shifts if aligned correctly.
+// The correct alignment is ensured by starting 24-hour periods at the
+// same start time as the first shift.
+define "Verified Shift Duration":
+  if (24 hours mod "Shift Duration") != 0 hours then
+    Message(null, true, '400', 'Error',
+            'Shift duration must divide 24; '
+            + ToString("Shift Duration".value)
+            + ' does not divide 24.')
+  else
+    "Shift Duration"
+
 context Patient
 
 define function "Shifts during Period with Duration"(period Interval<DateTime>, shiftDuration Quantity):
@@ -38,7 +51,7 @@ define function "Shifts during Period with Duration"(period Interval<DateTime>, 
 define function "Shifts during Period"(period Interval<DateTime>):
   (1) _
     let shiftDuration: Quantity{
-                         value: (convert "Shift Duration" to 's').value,
+                         value: (convert "Verified Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
       return "Shifts during Period with Duration"(period, shiftDuration)
@@ -46,7 +59,7 @@ define function "Shifts during Period"(period Interval<DateTime>):
 define function "Shifts during Periods"(visits List<Interval<DateTime>>):
   (1) _
     let shiftDuration: Quantity{
-                         value: (convert "Shift Duration" to 's').value,
+                         value: (convert "Verified Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
       return all (visits) visit
@@ -73,10 +86,11 @@ define function "24-hour Periods overlapping Period"(periodInterval Interval<Dat
         periodStart:      start of periodInterval,
         periodEnd:        end of periodInterval,
         periodStartDay:   date from periodStart,
-        // TODO(moringenj): use "Shift Start within Day"
-        // TODO(moringenj); ensure that (24 h mod shiftDuration) = 0
-        // Why? So that shifts and 24-hour periods align properly
-        maybeExpandStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
+        // Align start of 24-hour periods with the start of the first shift.
+        // See comment above "Verified Shift Duration" regarding duration of
+        // shifts and 24-hour periods.
+        maybeExpandStart: L.ExpandDateToDateTime(periodStartDay)
+                          + "Shift Start within Day",
         // If the time (within the day) of periodStart is before the
         // time of maybeExpandStart, using maybeExpandStart in Expand
         // would produce a first Interval that omits the time from

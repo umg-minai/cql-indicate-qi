@@ -56,18 +56,20 @@ define function "Shifts during Period"(period Interval<DateTime>):
                        }
       return "Shifts during Period with Duration"(period, shiftDuration)
 
-define function "Shifts during Periods"(visits List<Interval<DateTime>>):
+// Note: currently unused
+define function "Shifts during Periods"(periods List<Interval<DateTime>>):
   (1) _
     let shiftDuration: Quantity{
                          value: (convert "Verified Shift Duration" to 's').value,
                          unit:  'seconds'
                        }
-      return all (visits) visit
-                   return all "Shifts during Period with Duration"(
-                                visit,
-                                shiftDuration
-                              )
+      return (periods) period
+               return all "Shifts during Period with Duration"(
+                            period,
+                            shiftDuration
+                          )
 
+// Note: currently unused
 define "Shifts in Visits":
   "Shifts during Periods"(E."Intensive Care Visits in Review Period")
 
@@ -114,12 +116,14 @@ define function "24-hour Periods overlapping Period"(periodInterval Interval<Dat
                // the two legs of the if have the same type.
                {} as List<Interval<DateTime>>
 
+// Note: currently unused
 define function "24-hour Periods overlapping Visits"(visits List<Interval<DateTime>>):
   (visits) v
     let periods: "24-hour Periods overlapping Period"(v)
       where Exists(periods)
       return all periods
 
+// Note: currently unused
 define "24-hour Periods in Visits":
   "24-hour Periods overlapping Visits"(E."Intensive Care Visits in Review Period")
 

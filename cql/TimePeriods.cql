@@ -60,37 +60,54 @@ define "Shifts in Visits":
 
 /// 24-hour Periods
 
-// Each period starts at 6:00 and ends 24 h later at 5:59 of the
-// following day. All periods of this kind that fall within the visits
+// Each 24-hour period starts at 6:00 and ends 24 h later at 5:59 of the
+// following day.  All periods of this kind that overlap the given period
 // are initially generated even though some of those at the beginning
 // and at the end of the visit may not be used due to exclusion rules.
-define function "24-hour Periods during Period"(periodInterval Interval<DateTime>):
+define function "24-hour Periods overlapping Period"(periodInterval Interval<DateTime>):
   (1) _
-    let periodStartDay:   date from start of periodInterval,
+    let dayDuration:      Quantity{
+                            value: (convert 1 'd' to 's').value,
+                            unit:  'seconds'
+                          },
+        periodStart:      start of periodInterval,
         periodEnd:        end of periodInterval,
+        periodStartDay:   date from periodStart,
         // TODO(moringenj): use "Shift Start within Day"
         // TODO(moringenj); ensure that (24 h mod shiftDuration) = 0
         // Why? So that shifts and 24-hour periods align properly
-        firstPeriodStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
-        dayDuration:      Quantity{value: (convert 1 'd' to 's').value, unit: 'seconds'}
-      return if firstPeriodStart before periodEnd then
-               (Expand(Interval[firstPeriodStart, periodEnd], dayDuration)) s
-                 let period: Interval[s, s + dayDuration)
-                   where period included in periodInterval
-                   return all period
+        maybeExpandStart: L.ExpandDateToDateTime(periodStartDay) + 6 hours,
+        // If the time (within the day) of periodStart is before the
+        // time of maybeExpandStart, using maybeExpandStart in Expand
+        // would produce a first Interval that omits the time from
+        // periodStart to maybeExpandStart.  To include that time in the
+        // first interval, extend the "expand interval" by 24 hours if
+        // appropriate.
+        expandStart:      if periodStart before maybeExpandStart then
+                            maybeExpandStart - dayDuration
+                          else
+                            maybeExpandStart,
+        expandEnd:        periodEnd + dayDuration
+      return if expandStart before expandEnd then
+               // "Expand" the "expand interval" into a list of start
+               // points for 24-hour intervals.  Then transform each
+               // start point into the corresponding 24-hour interval.
+               (Expand(Interval[expandStart, expandEnd], dayDuration)) s
+                 where not (s = periodEnd)
+                 return all Interval[s, s + dayDuration)
              else
                // Without the casts, the CQL engine does not know that
                // the two legs of the if have the same type.
                {} as List<Interval<DateTime>>
 
-define function "24-hour Periods during Visits"(visits List<Interval<DateTime>>):
+define function "24-hour Periods overlapping Visits"(visits List<Interval<DateTime>>):
   (visits) v
-    let periods: "24-hour Periods during Period"(v)
+    let periods: "24-hour Periods overlapping Period"(v)
       where Exists(periods)
       return all periods
 
 define "24-hour Periods in Visits":
-  "24-hour Periods during Visits"(E."Intensive Care Visits in Review Period")
+  "24-hour Periods overlapping Visits"(E."Intensive Care Visits in Review Period")
 
 /// Visits
 
@@ -101,47 +118,54 @@ define "Intensive Care Visits overlapping Review Period":
 
 define function "Visits and 24-hour Periods"(visits List<Interval<DateTime>>):
   (visits) v
-    let periods: "24-hour Periods during Period"(v)
+    let periods: "24-hour Periods overlapping Period"(v)
       where Exists(periods)
       return all {visit: v, periods: periods}
 
-define function "Visits and 24-hour Periods during Review Period"(
+// Return a list which contains for each visit in the given visits a
+// triple of the visit, "overlapping" 24-hour periods and "fully
+// contained" 24-hour periods.  Visits for which none of those periods
+// are within the given considered period are excluded from the returned
+// list of triples.
+//
+// An "overlapping" 24-hour period is an Interval that starts at the
+// configured "Shift Start within Day" and has a duration of 24-hour
+// hours.  All returned "overlapping" 24-hour periods overlap the
+// temporal period of the corresponding visit and overlap the considered
+// period.
+//
+// An "fully contained" 24-hour period is an Interval that starts at
+// the configured "Shift Start within Day" and has a duration of 24-hour
+// hours.  All returned "fully contained" 24-hour periods are contained
+// in the temporal period of the corresponding visit and are contained in
+// the considered period.
+define function "Visits and 24-hour Periods during Period"(
     visits       List<Interval<DateTime>>,
-    reviewPeriod Interval<DateTime>
+    consideredPeriod Interval<DateTime>
   ):
   Flatten(
-    (visits) v
-      // TODO(moringenj): fix or comment this
-      let previousEndPoint: start of reviewPeriod - 10 hours,
-          endPoint:         end of reviewPeriod - 10 hours,
-          allPeriods:       "24-hour Periods during Period"(v)
-        where Exists(allPeriods)
+    (visits) visit
+      let overlappingPeriods: "24-hour Periods overlapping Period"(visit)
+        where Exists(overlappingPeriods)
         return all (1) _
-                     // TODO(moringenj): intersect with reviewPeriod; filter if not within visit interval?
-                     let periods: (allPeriods) p
-                                    where     end of p > previousEndPoint
-                                          and end of p <= endPoint
-                                    return all p
-                       return all if Exists(periods) then
-                                    { {
-                                       reviewPeriod: reviewPeriod,
-                                       startAndEnd:  Interval(previousEndPoint, endPoint],
-
-                                       visit:      v,
-
-                                       allPeriods: allPeriods,
-                                       periods:    periods // rename: completePeriods
-                                     } }
-                                   else
-                                     // Without the casts, the CQL engine
-                                     // does not know that the two legs of
-                                     // the if have the same type.
-                                     ({} as List<Tuple{reviewPeriod Any,
-                                                       startAndEnd  Any,
-                                                       visit        Interval<DateTime>,
-                                                       allPeriods   List<Interval<DateTime>>,
-                                                       periods      List<Interval<DateTime>>}>)
+                     let fullyContainedPeriods: (overlappingPeriods) p
+                                                  where     (p during visit)
+                                                        and (p during consideredPeriod)
+                                                  return all p
+                       return if Exists(fullyContainedPeriods) then
+                               { {
+                                  visit:                 visit,
+                                  overlappingPeriods:    overlappingPeriods,
+                                  fullyContainedPeriods: fullyContainedPeriods
+                                } }
+                              else
+                                // Without the casts, the CQL engine
+                                // does not know that the two legs of
+                                // the if have the same type.
+                                ({} as List<Tuple{visit                 Interval<DateTime>,
+                                                  overlappingPeriods    List<Interval<DateTime>>,
+                                                  fullyContainedPeriods List<Interval<DateTime>>}>)
   )
 
 define "Visits with 24-hour Periods":
-  "Visits and 24-hour Periods during Review Period"("Intensive Care Visits overlapping Review Period", E."Review Period")
+  "Visits and 24-hour Periods during Period"("Intensive Care Visits overlapping Review Period", E."Review Period")

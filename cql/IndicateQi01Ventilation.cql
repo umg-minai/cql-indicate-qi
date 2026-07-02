@@ -383,7 +383,7 @@ define "Visit Results":
         measurementsInVisit:         ("PEEP Measurements") m
                                        where m in visitInterval
                                        return all m
-      return all (visitWithPeriods.periods) period
+      return all (visitWithPeriods.fullyContainedPeriods) period
                    let measurementsInPeriod: (measurementsInVisit) m
                                                where m in period
                                                return all m,

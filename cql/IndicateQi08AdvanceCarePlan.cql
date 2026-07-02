@@ -76,7 +76,7 @@ define "Visit Results":
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
         conformingVisit:             "Is Conforming Visit"(visitInterval)
-      return all (visitWithPeriods.periods) period
+      return all (visitWithPeriods.fullyContainedPeriods) period
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,

@@ -194,10 +194,17 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
+        // This returns only shifts that are fully contained in the
+        // visit interval.  This behavior matches the requirement that
+        // incomplete shifts which merely overlap the visit interval
+        // should be ignored
         shifts:                      T."Shifts during Period"(visitInterval),
         goodShifts:                  "Conforming Shifts in Visit"(shifts)
-      // TODO(moringenj): change definition to also consider 24-hour intervals instead of the whole visit/observation period
-      return all (visitWithPeriods.periods) period
+      return all (visitWithPeriods.overlappingPeriods) period
+                   // If the number of shifts during period is 0, the
+                   // quotient will be 0/0 which evaluates to null so
+                   // that the period result is recognized as
+                   // denominator exclusion.
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,

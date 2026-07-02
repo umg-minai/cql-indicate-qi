@@ -315,8 +315,8 @@ define function "Is in Initial Population"(visitInterval Interval<DateTime>):
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit),
-        goodPeriods:                 "24-hour Periods with appropriate Calorie Intake"(visitWithPeriods.allPeriods)
-      return all (visitWithPeriods.periods) period
+        goodPeriods:                 "24-hour Periods with appropriate Calorie Intake"(visitWithPeriods.fullyContainedPeriods)
+      return all (visitWithPeriods.fullyContainedPeriods) period
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,

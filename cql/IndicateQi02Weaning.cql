@@ -107,7 +107,7 @@ define function "Is in Initial Population"(visitInterval Interval<DateTime>):
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let inInitialPopulationForVisit: "Is in Initial Population"(visitWithPeriods.visit)
-      return all (visitWithPeriods.periods) period
+      return all (visitWithPeriods.fullyContainedPeriods) period
                    // TODO(moringenj):
                    // start der beatmung mind. 48 h vor ende der periode -> periode bruecksichtigen sonst null
                    // -> Sebastian fragen, ob das ok ist

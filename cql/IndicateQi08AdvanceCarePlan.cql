@@ -52,18 +52,28 @@ define "Decision Authority Documented Observations":
     return all o
     sort by observationDatetime
 
-define function "Is Conforming Visit"(period Interval<DateTime>):
+// This function returns the number of satisfied criteria (between 0 and 3) for
+// the 72-hour period starting at startTime.
+define function "Number of Satisfied Criteria in Period"(startTime DateTime):
   (1) _
-    let "First 72 hours": Interval[start of period,
-                                   start of period + 72 hours]
-      return     Exists("Advance Care Plan Agreed Observations" o
-                          where o in "First 72 hours")
-             and (   Exists("Consultation with Patient Observations" o
-                              where o in "First 72 hours")
-                  or Exists("Discussion about Care Plan with Family Observations" o
-                              where o in "First 72 hours"))
-             and Exists("Decision Authority Documented Observations" o
-                          where o in "First 72 hours")
+    let "First 72 hours": Interval[startTime, startTime + 72 hours]
+      return   if Exists("Advance Care Plan Agreed Observations" o
+                           where o in "First 72 hours") then
+                 1
+               else
+                 0
+             + if (   Exists("Consultation with Patient Observations" o
+                               where o in "First 72 hours")
+                   or Exists("Discussion about Care Plan with Family Observations" o
+                               where o in "First 72 hours")) then
+                 1
+               else
+                 0
+             + if Exists("Decision Authority Documented Observations" o
+                           where o in "First 72 hours") then
+                 1
+               else
+                 0
 
 // Quality Indicator
 
@@ -75,13 +85,25 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
-        conformingVisit:             "Is Conforming Visit"(visitInterval)
+        // Count the satisfied criteria for this visit, that is the
+        // number of assessments (between 0 and 3) performed within the
+        // first 72 hours of the visit.
+        numberOfSatisfiedCriteria:   "Number of Satisfied Criteria in Period"(
+                                       start of visitInterval
+                                     )
       return all (visitWithPeriods.fullyContainedPeriods) period
                    return all elm."Period Result"(
                      period,
-                     inInitialPopulationForVisit,
-                     if conformingVisit then 1 else 0,
-                     1
+                     // From all fully contained 24-hour periods, exclude those
+                     // that end within the first 72 hours of the visit since
+                     // it is not a sign of non-conformance to perform the
+                     // assessments on, say, the third day of the visit (and
+                     // apply the initial population criterion).
+                         inInitialPopulationForVisit
+                     and (end of period)
+                         same or after (start of visitInterval + 72 hours),
+                     numberOfSatisfiedCriteria,
+                     3
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")

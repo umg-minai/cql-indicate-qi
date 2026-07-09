@@ -8,6 +8,8 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 
+include IndicateQiUtilities called U
+
 // TODO: @sgibb,: drop default value when leaving testing environment
 parameter "Review Period"
     default Interval[@1005-04-05T00:00:00.0, @3025-04-20T00:00:00.0)
@@ -38,7 +40,8 @@ code "Gender Male":   '8507' from OMOPSV
 
 define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
   (1) _
-    let heightPart: 0.91 * (convert Height to 'cm' - 152.4 'cm').value
+    let heightInCM: U.EnsureQuantityWithUnit('Body height', Height, 'cm'),
+        heightPart: 0.91 * (heightInCM - 152.4 'cm').value
       return Quantity{
                value: case
                         when Gender ~ "Gender Female" then
@@ -92,9 +95,12 @@ define function "Ideal Body Weight Measured or Computed Before"(targetTime DateT
         bodyHeight:      "Most Recent Body Height Measurement Before"(targetTime)
       return case
                when idealBodyWeight is not null then
-                 convert idealBodyWeight to Quantity
+                 U.EnsureQuantity('Ideal body weight', idealBodyWeight)
                when bodyHeight is not null then
-                 "Ideal Body Weight for Height"(bodyHeight, Patient.genderConcept)
+                 "Ideal Body Weight for Height"(
+                   U.EnsureQuantity('Body height', bodyHeight),
+                   Patient.genderConcept
+                 )
                else
                  null
              end
@@ -107,8 +113,8 @@ define function "Body Mass Index Before"(targetTime DateTime):
         bodyHeight: "Most Recent Body Height Measurement Before"(targetTime)
       return if bodyWeight is not null and bodyHeight is not null then
                (1) _
-                 let bodyWeightInKg: convert bodyWeight to 'kg',
-                     bodyHeightInM:  convert bodyHeight to 'm'
+                 let bodyWeightInKg: U.EnsureQuantityWithUnit('Body weight', bodyWeight, 'kg'),
+                     bodyHeightInM:  U.EnsureQuantityWithUnit('Body height', bodyHeight, 'm')
                    // We use multiplication because the CQL Power operator
                    // cannot be applied to quantities.
                    return bodyWeightInKg / (bodyHeightInM * bodyHeightInM)

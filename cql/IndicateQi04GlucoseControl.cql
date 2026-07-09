@@ -109,10 +109,10 @@ define function "Ensure Glucose Level in mol/L"(glucoseLevel Quantity):
   end
 
 define function "Is High Glucose Level"(glucoseLevel Quantity):
-  "Ensure Glucose Level in mol/L"(glucoseLevel) > end of "Acceptable Glucose Levels"
+  glucoseLevel > end of "Acceptable Glucose Levels"
 
 define function "Is Low Glucose Level"(glucoseLevel Quantity):
-  "Ensure Glucose Level in mol/L"(glucoseLevel) < start of "Acceptable Glucose Levels"
+  glucoseLevel < start of "Acceptable Glucose Levels"
 
 define function "Is Acceptable Glucose Level"(glucoseLevel Quantity):
       (not "Is High Glucose Level"(glucoseLevel))
@@ -148,19 +148,29 @@ define function "Successful Glucose Control"(previousMeasurement Measurement,
             measurement,
             "Verified Maximum Time between consecutive Glucose Levels"
           ))
-  and ("Is Acceptable Glucose Level"(convert measurement to Quantity)
-       or (if nextMeasurement is null then
-             false
-           else
-                 "Time between Measurements At Most"(
-                   measurement,
-                   nextMeasurement,
-                   "Verified Maximum Time between consecutive Non-acceptable Glucose Levels"
-                 )
-             and "Acceptable Follow-up Glucose Level"(
-                   convert measurement     to Quantity,
-                   convert nextMeasurement to Quantity
-                 )))
+  and (1) _
+        let measurementInMolL:     "Ensure Glucose Level in mol/L"(
+                                     convert measurement to Quantity
+                                   ),
+            nextMeasurementInMolL: if nextMeasurement is not null then
+                                     "Ensure Glucose Level in mol/L"(
+                                       convert nextMeasurement to Quantity
+                                     )
+                                   else
+                                     null
+          return
+                    "Is Acceptable Glucose Level"(measurementInMolL)
+                 or (if nextMeasurement is null then
+                       false
+                     else
+                           "Time between Measurements At Most"(
+                             measurement,
+                             nextMeasurement,
+                             "Verified Maximum Time between consecutive Non-acceptable Glucose Levels"
+                           )
+                       and "Acceptable Follow-up Glucose Level"(
+                             measurementInMolL, nextMeasurementInMolL
+                           ))
 
 define function "Acceptable Glucose Measurements"(
     measurements List<Tuple{previous Measurement, current Measurement, next Measurement}>,

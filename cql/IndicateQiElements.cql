@@ -1,5 +1,6 @@
-// This file contains general definitions that are shared between the
-// different quality indicators.
+// This file contains general definitions of domain concepts
+// (i.e. clinical) that are shared between the different quality
+// indicators.  For shared technical definitions, see IndicateQiUtilities.cql.
 
 library "IndicateQiElements" version '1.0.0'
 

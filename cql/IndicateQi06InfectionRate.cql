@@ -10,8 +10,11 @@ library "IndicateQi06InfectionRate" version '1.0.0'
 using OMOP version 'v5.4'
 
 include OMOPHelpers
-include IndicateQiElements called elm
+
 include TimePeriods called T
+
+include IndicateQiElements called elm
+include IndicateQiUtilities called U
 
 // Terminology
 
@@ -72,7 +75,11 @@ define function incidence(period       Interval<DateTime>,
                           relevantDays Decimal):
   case
     when eventCount > 0 and not (relevantDays > 0) then
-      Message(0, true, '400', 'Error', 'In period [' + ToString(start of period) + ', ' + ToString(end of period) + '], event count is ' + ToString(eventCount) + ' but relevant days is ' + ToString(relevantDays))
+      U.SignalProblemWithValue('In period [' + ToString(start of period) + ', '
+                               + ToString(end of period) + '], event count is '
+                               + ToString(eventCount) + ' but relevant days is '
+                               + ToString(relevantDays),
+                               0)
     else
       // This will be null if relevantDays is 0 but in that case,
       // eventCount is also 0.

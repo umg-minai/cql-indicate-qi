@@ -18,6 +18,8 @@ using OMOP version 'v5.4'
 include OMOPHelpers
 
 include TimePeriods called T
+
+include IndicateQiUtilities called U
 include IndicateQiElements called elm
 
 include VentilationProcedures
@@ -253,24 +255,8 @@ define "Usable Tidal Volume Measurements":
   // volume per body weight (Vt/kg)" concept set since such measurements are
   // uncommon and would require scaling with the (actual) body weight.
   [Measurement: TidalVolumeMeasurements."Tidal Volume Measurements"] m
-    // TODO(moringenj): introduce a function for this
-    // TODO(moringenj): make error/warning/ignore behavior configurable
-    where     if m.unitConcept is null then
-                // TODO(moringenj): include the measurement in the message once we have ToString for Measurement
-                Message(false, true, '400', 'Warning', 'Tidal volume measurement does not have a unit')
-              else
-                true
-          and if m.valueAsNumber is null then
-                Message(false, true, '400', 'Warning', 'Tidal volume measurement does not have a numeric value')
-              else
-                true
-          and if (convert (convert m to Quantity) to 'mL').value is null then
-                Message(false, true, '400', 'Warning',
-                        'Tidal volume measurement has unit "'
-                        + (convert m to Quantity).unit
-                        + '" but must convertible to "mL"')
-              else
-                true
+    // TODO(moringenj): include the measurement in the message once we have ToString for Measurement
+    where U.EnsureQuantityWithUnit('Tidal volume measurement', m, 'mL') is not null
     return all m
     sort by measurementDatetime desc
 

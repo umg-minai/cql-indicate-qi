@@ -14,6 +14,7 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 include IndicateQiElements called elm
+include IndicateQiUtilities called U
 include TimePeriods called T
 
 parameter "Acceptable Glucose Levels"
@@ -79,34 +80,20 @@ context Patient
 
 // Glucose Measurements
 
-define "Valid Glucose Measurements":
+define "Glucose Measurements":
   [Measurement: "Glucose Level"] m // TODO(moringenj): restrict to review period?
-    // Some measurements in the database lack at least one of these properties.
-    where not m.valueAsNumber is null and not m.unitConcept is null
     return all m
     sort by measurementDatetime
 
-define "Valid Glucose Measurements With Neighbors":
-  elm."Measurements with Neighbors"("Valid Glucose Measurements")
+define "Glucose Measurements With Neighbors":
+  elm."Measurements with Neighbors"("Glucose Measurements")
 
 // Glucose levels
 
-define function "Convert g/L to mol/L"(quantity Quantity):
-  (1) _
-    let scaled: convert quantity to 'mg/dL'
-      return Quantity{value: 1/18 * scaled.value, unit: 'mmol/L'}
-
-define function "Ensure Glucose Level in mol/L"(glucoseLevel Quantity):
-  case
-    when convert glucoseLevel to 'g/L' is not null then
-      "Convert g/L to mol/L"(glucoseLevel)
-    when convert glucoseLevel to 'mol/L' is not null then
-      glucoseLevel
-    else
-      Message(null, true, '400', 'Error',
-              'Unit is "' + glucoseLevel.unit + '" but must be either "mol/L"'
-              + ' or convertible to "g/L"')
-  end
+define function "Ensure Glucose Level in mol/L"(measurement Measurement):
+  U."EnsureQuantityIn mol/L"(
+    'Blood Glucose Level', measurement, 'mg/dL', 'mmol/L', 1/18
+  )
 
 define function "Is High Glucose Level"(glucoseLevel Quantity):
   glucoseLevel > end of "Acceptable Glucose Levels"
@@ -149,13 +136,9 @@ define function "Successful Glucose Control"(previousMeasurement Measurement,
             "Verified Maximum Time between consecutive Glucose Levels"
           ))
   and (1) _
-        let measurementInMolL:     "Ensure Glucose Level in mol/L"(
-                                     convert measurement to Quantity
-                                   ),
+        let measurementInMolL:     "Ensure Glucose Level in mol/L"(measurement),
             nextMeasurementInMolL: if nextMeasurement is not null then
-                                     "Ensure Glucose Level in mol/L"(
-                                       convert nextMeasurement to Quantity
-                                     )
+                                     "Ensure Glucose Level in mol/L"(nextMeasurement)
                                    else
                                      null
           return
@@ -205,7 +188,7 @@ define function "Conforming Glucose Measurements"(
 // Shifts
 
 define function "Measurements during Shift Plus Neighbors"(shift Interval<DateTime>):
-  "Valid Glucose Measurements With Neighbors" m
+  "Glucose Measurements With Neighbors" m
     where (convert m.current to DateTime) during shift
     return all m
 

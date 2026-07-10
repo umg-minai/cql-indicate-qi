@@ -13,6 +13,8 @@ using OMOP version 'v5.4'
 include OMOPHelpers
 include OMOPFunctions
 
+include IndicateQiUtilities called U
+
 // This function converts a mass-based insulin quantity into the
 // corresponding quantity expressed in international units using the
 // published conversion factor.
@@ -89,11 +91,13 @@ define function "Insulin Strength in IU"(drugStrength DrugStrength):
         quantityInIU: "Insulin Amount in IU"(quantity)
       return
       if quantityInIU is null then
-        Message(null as Tuple{quantity Quantity, perVolume Boolean}, true, '400', 'Warning',
-                'Unexpected unit in DrugStrength for ingredient '
-                + drugStrength.ingredientConcept.conceptName
-                + ' of drug ' + drugStrength.drugConcept.conceptName
-                + ': ' + if quantity is null then 'null' else quantity.unit)
+        U.SignalProblem('Unexpected unit in DrugStrength for ingredient '
+                        + drugStrength.ingredientConcept.conceptName
+                        + ' of drug '
+                        + drugStrength.drugConcept.conceptName
+                        + ': '
+                        + if quantity is null then 'null' else quantity.unit)
+          as Tuple{quantity Quantity, perVolume Boolean}
       else
         quantityInIU
 
@@ -117,12 +121,15 @@ define function "Insulin Exposure"(drugExposure OMOP.DrugExposure,
                // {false,true} which indicates a mixture of per-volume
                // strengths and abstract strengths.
                when Count(perVolume) > 1 then
-                 Message(null as Quantity, true, '400', 'Error',
-                         'Some strengths are given per-volume and some are not')
+                 U.SignalProblem('Some strengths are given per-volume and some'
+                                 + ' are not')
+                   as Quantity
                when strengthQuantity is not null
                     and drugExposure.quantity is not null then
                  drugExposure.quantity * strengthQuantity
                else
-                 Message(null as Quantity, true, '400', 'Error',
-                         'Missing quantity in DrugExposure or failure to compute insulin amount from DrugStrengths')
+                 U.SignalProblem('Missing quantity in DrugExposure or failure'
+                                 + ' to compute insulin amount from'
+                                 + ' DrugStrengths')
+                   as Quantity
              end

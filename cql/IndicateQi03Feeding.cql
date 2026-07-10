@@ -17,6 +17,7 @@ include OMOPFunctions
 include LocalTimeGermany called L
 include TimePeriods called T
 include IndicateQiElements called elm
+include IndicateQiUtilities called U
 include InsulinDrugs
 include InsulinIngredients
 include InsulinStrength
@@ -86,24 +87,6 @@ define "Calorie Intake Measurements":
 define "Renal Replacement Therapy Procedures":
   [ProcedureOccurrence: "Renal Replacement Therapy"]
 
-// TODO(moringenj): will be replaced by utility library
-define function "Convert g/L to mmol/L"(quantity Quantity):
-  (1) _
-    let scaled: convert quantity to 'mg/L'
-      // Source for conversion factor:
-      // https://www.imd-berlin.de/leistungsverzeichnis/einheitenrechner
-      return Quantity{value: 0.0323 * scaled.value, unit: 'mmol/L'}
-
-define function "Ensure Phosphate in mmol/L"(phosphate Quantity):
-  case
-    when Matches(phosphate.unit, '.*g/.*L') then
-      "Convert g/L to mmol/L"(phosphate)
-    when Matches(phosphate.unit, '.*mol/.*L') then
-      phosphate
-    else
-      Message(null, true, '400', 'Error', 'Unit is "' + (if phosphate.unit is null then 'null' else phosphate.unit) + '" but must be either "mol/L" or convertible to "g/L"')
-  end
-
 define function "Last Phosphate Measurement in Period"(period Interval<DateTime>):
   (1) _
     let lastMeasurement: Last("Phosphate Measurements" m
@@ -115,7 +98,12 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
       return if lastMeasurement is null then
                1 'mmol/L'
              else
-               "Ensure Phosphate in mmol/L"(convert lastMeasurement to Quantity)
+               // Source for conversion factor:
+               // https://www.imd-berlin.de/leistungsverzeichnis/einheitenrechner
+               U."EnsureQuantityIn mol/L"(
+                 'Blood Phosphate Measurement', lastMeasurement,
+                 'mg/L', 'mmol/L', 0.0323
+               )
 
 // Return as a Quantity with unit [IU] the amount of insulin
 // administered in exposure scaled by the fraction of exposure that
@@ -236,11 +224,11 @@ define function "Initial Calorie Target via BMI"(targetTime DateTime):
                when bodyMassIndex is not null
                     and bodyWeight is not null
                     and bodyMassIndex < 30 'kg/m2' then
-                 24 'kcal/d/kg' * (convert bodyWeight to Quantity)
+                 24 'kcal/d/kg' * U.EnsureQuantityWithUnit('Body weight', bodyWeight, 'kg')
                when bodyMassIndex is not null
                     and bodyWeight is not null
                     and bodyMassIndex <= 50 'kg/m2' then
-                 14 'kcal/d/kg' * (convert bodyWeight to Quantity)
+                 14 'kcal/d/kg' * U.EnsureQuantityWithUnit('Body weight', bodyWeight, 'kg')
                when bodyHeight is not null then
                  24 'kcal/d/kg'
                  * elm."Ideal Body Weight for Height"(bodyHeight, Patient.genderConcept)

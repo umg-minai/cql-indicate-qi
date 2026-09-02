@@ -275,12 +275,12 @@ define function "Initial Calorie Target"(previousDay Interval<DateTime>):
                (1) __
                  let viaBMI: "Initial Calorie Target via BMI"(end of previousDay)
                    return if viaBMI is null then
-                            Message(null, true, '400', 'Error',
+                            U.SignalProblemWithValue(
                                     'Could not determine initial calorie target'
                                     + ' via documented energy requirement,'
                                     + ' observed CO2 production rate or body'
                                     + ' mass index (neither documented nor'
-                                    + ' computed)')
+                                    + ' computed)', null)
                           else
                             viaBMI
 
@@ -288,54 +288,52 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
                                                     previousPeriod Interval<DateTime>,
                                                     period         Interval<DateTime>,
                                                     dayOfVisit     Integer):
-  (1) _
-    let initialCalorieTarget: "Initial Calorie Target"(previousPeriod),
-        maybePreviousInsulin: "Total Insulin Rate in Period"(previousPeriod),
-        previousInsulin:      if maybePreviousInsulin is null then
-                                0 '[IU]/h'
-                              else
-                                maybePreviousInsulin,
-        rawTarget:            case
-                                when dayOfVisit = 0 then
-                                  null // No target for first 24-hour period
+  if dayOfVisit = 0 then
+    null // No target for first 24-hour period
+  else
+    (1) _
+      let initialCalorieTarget: "Initial Calorie Target"(previousPeriod),
+          maybePreviousInsulin: "Total Insulin Rate in Period"(previousPeriod),
+          previousInsulin:      if maybePreviousInsulin is null then
+                                  0 '[IU]/h'
+                                else
+                                  maybePreviousInsulin,
+          rawTarget:            case
 
-                                when dayOfVisit = 1 then
-                                  0.75 * initialCalorieTarget
+                                  when dayOfVisit = 1 then
+                                    0.75 * initialCalorieTarget
 
-                                when     not "Renal Replacement Therapy Procedure in Period"(previousPeriod)
-                                     and "Last Phosphate Measurement in Period"(period) < 0.65 'mmol/l'
-                                     and previousInsulin <= 4 '[IU]/h'
-                                     and previousTarget >= 0.5 * initialCalorieTarget then
-                                  0.25 * initialCalorieTarget
+                                  when     not "Renal Replacement Therapy Procedure in Period"(previousPeriod)
+                                       and "Last Phosphate Measurement in Period"(period) < 0.65 'mmol/l'
+                                       and previousInsulin <= 4 '[IU]/h'
+                                       and previousTarget >= 0.5 * initialCalorieTarget then
+                                    0.25 * initialCalorieTarget
 
-                                when previousInsulin < 2 '[IU]/h' then
-                                  previousTarget + 0.25 * initialCalorieTarget
+                                  when previousInsulin < 2 '[IU]/h' then
+                                    previousTarget + 0.25 * initialCalorieTarget
 
-                                when previousInsulin in Interval[2 '[IU]/h', 4 '[IU]/h'] then
-                                  previousTarget - 0.25 * initialCalorieTarget
+                                  when previousInsulin in Interval[2 '[IU]/h', 4 '[IU]/h'] then
+                                    previousTarget - 0.25 * initialCalorieTarget
 
-                                when previousInsulin > 4 '[IU]/h' then
-                                  previousTarget - 0.5 * initialCalorieTarget
+                                  when previousInsulin > 4 '[IU]/h' then
+                                    previousTarget - 0.5 * initialCalorieTarget
 
-                                else // NOTE(moringenj): should be unreachable
-                                  Message(null, true, '400', 'Error',
-                                          'No matching case; insulin '
-                                          + ToString(previousInsulin) +
-                                          ' previous target '
-                                          + ToString(previousTarget))
-                              end
-      // Clamp calorie target to [0, Initial Calorie Target]; the
-      // value could be outside of this range due to the unchecked
-      // additions and subtractions above.  Exception: the target for
-      // day 0 is null.
-      return case
-               when rawTarget is not null then
+                                  else // NOTE(moringenj): should be unreachable
+                                    U.SignalProblemWithValue(
+                                            'No matching case; insulin '
+                                            + ToString(previousInsulin) +
+                                            ' previous target '
+                                            + ToString(previousTarget),
+                                            null)
+                                end
+        // Clamp calorie target to [0, Initial Calorie Target]; the
+        // value could be outside of this range due to the unchecked
+        // additions and subtractions above.  Exception: the target for
+        // day 0 is null.
+        return if rawTarget is not null then
                  Max({0 'kcal/d', Min({rawTarget, initialCalorieTarget})})
-               when dayOfVisit = 0 then
-                 null
                else
-                 Message(null, true, '400', 'Error', 'Calorie target is null')
-             end
+                 U.SignalProblemWithValue('Calorie target is null', null)
 
 define function "24-hour Periods with Results"(periods List<Interval<DateTime>>):
   (periods) p aggregate r starting ({
@@ -357,8 +355,10 @@ define function "24-hour Periods with Results"(periods List<Interval<DateTime>>)
                     r.dayOfVisit
                   ),
           actual: "Calorie Intake in Period"(p),
-          result:    target is null
-                  or 0.9 * target <= actual and actual <= 1.1 * target
+          result: if target is null then
+                    false
+                  else
+                    0.9 * target <= actual and actual <= 1.1 * target
         return {
                  previousPeriod: p,
                  previousTarget: target,

@@ -124,12 +124,13 @@ define function "Insulin Exposure"(drugExposure OMOP.DrugExposure,
                  U.SignalProblem('Some strengths are given per-volume and some'
                                  + ' are not')
                    as Quantity
-               when strengthQuantity is not null
-                    and drugExposure.quantity is not null then
-                 drugExposure.quantity * strengthQuantity
-               else
-                 U.SignalProblem('Missing quantity in DrugExposure or failure'
-                                 + ' to compute insulin amount from'
+               when strengthQuantity is null then
+                 U.SignalProblem('Failed to compute insulin amount from'
                                  + ' DrugStrengths')
                    as Quantity
+               when drugExposure.quantity is null then
+                 U.SignalProblem('Missing quantity in DrugExposure')
+                   as Quantity
+               else
+                 drugExposure.quantity * strengthQuantity
              end

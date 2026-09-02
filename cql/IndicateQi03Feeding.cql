@@ -79,7 +79,20 @@ define "Contraindication to Enteral Feeding Observations":
   [Observation: "Contraindication to Enteral Feeding"]
 
 define "CO2 Production Rate Measurements":
-  [Measurement: "CO2 Production Rate"]
+  [Measurement: "CO2 Production Rate"] m
+    // AumcDB generates measurement rows with the "CO2 Production Rate"
+    // concept from two different outputs of the (I assume) "IntelliBridge
+    // Device Driver ED225" machine. The following is from the manual
+    // "IntelliBridge Device Driver ED225 (Release B) for Maquet SERVO-n",
+    // page 14:
+    //
+    //   VCO_2 ti | CO_2 tidal production (VTCO_2) | ml
+    //   VCO_2    | CO_2 minute production (VCO_2) | ml/min
+    //
+    // Since only the "minute production" variable is usable for this
+    // quality indicator, we filter based on the unit. Filtering like that
+    // avoid encoding special knowledge regarding AumcDB or the device.
+    where (convert m to 'mL/min') is not null
 
 define "Calorie Intake Measurements":
   [Measurement: "Calorie Intake Total 24 Hour"]

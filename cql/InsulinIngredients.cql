@@ -10,7 +10,7 @@ include OMOPFunctions
 
 include IndicateQiElements called E
 
-code "insulin aspart":                  '35198096' from E.OMOPSV
+code "insulin aspart":                  '1567198'  from E.OMOPSV
 code "insulin aspart protamine, human": '1531601'  from E.OMOPSV
 code "insulin aspart, human":           '1567198'  from E.OMOPSV
 code "insulin degludec":                '35602717' from E.OMOPSV

@@ -125,8 +125,12 @@ define function "Insulin Exposure"(drugExposure OMOP.DrugExposure,
                                  + ' are not')
                    as Quantity
                when strengthQuantity is null then
-                 U.SignalProblem('Failed to compute insulin amount from'
-                                 + ' DrugStrengths')
+                 U.SignalProblem('Did not find any DrugStrength entries for'
+                                 + ' drug '
+                                 + drugExposure.drugConcept.conceptName
+                                 + ' ('
+                                 + ToString(drugExposure.drugConcept.conceptId)
+                                 + ')')
                    as Quantity
                when drugExposure.quantity is null then
                  U.SignalProblem('Missing quantity in DrugExposure')

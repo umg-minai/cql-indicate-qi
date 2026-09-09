@@ -68,7 +68,8 @@ define "Phosphate Measurements":
     sort by measurementDatetime desc
 
 define "Insulin Exposures":
-  [DrugExposure: InsulinDrugs."Insulin Drugs"]
+        [DrugExposure: InsulinDrugs."Insulin Drugs"]
+  union [DrugExposure: InsulinIngredients."Insulin Ingredients"]
 
 define "Energy Requirement Observations":
   [Observation: "Estimated required quantity of energy in 24 hours"] o

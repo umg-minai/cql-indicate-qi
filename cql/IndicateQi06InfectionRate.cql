@@ -121,15 +121,19 @@ define function "Number of CRBSI in Period"(period Interval<DateTime>):
 define function "CRBSI Incidence in Period"(period Interval<DateTime>):
   incidence(period, "Number of CRBSI in Period"(period), "CVC Days in Period"(period))
 
-// TODO(moringenj): This could be wrong for multiple visits: A
-// ventilation procedure start starts during the first visit and has no
-// end time would be reported for the second visit as well. We should
-// probably try to find the visit in which the procedure starts and take
-// the end time from there.
-define function "Ventilation Periods in Period"(period Interval<DateTime>):
+define function "Ventilation Periods in Period"(period      Interval<DateTime>,
+                                                visitPeriod Interval<DateTime>):
+  // Consider ventilation procedures that start during the current
+  // visit and overlap the period being considered.  For ventilation
+  // procedures without an end time, assume the procedure lasts at least
+  // until the end of the considered period.  The restriction to the
+  // current visit is necessary since otherwise a ventilation procedure
+  // without recorded end time started in a previous visit would be
+  // selected for each period in all later visits.
   collapse(
     ("Ventilation Procedures") p
-      where p.procedureDatetime before (end of period)
+      where     p.procedureDatetime during visitPeriod
+            and p.procedureDatetime before (end of period)
       return all (1) _
                    let ventilationInterval: if p.procedureEndDatetime is null then
                                               Interval[convert p to DateTime, end of period]
@@ -138,12 +142,15 @@ define function "Ventilation Periods in Period"(period Interval<DateTime>):
                      return all ventilationInterval intersect period
   )
 
-define function "Ventilation Hours in Period"(period Interval<DateTime>):
-  ("Ventilation Periods in Period"(period)) p aggregate r starting 0:
-    r + duration in hours of (p as Interval<DateTime>)
+define function "Ventilation Hours in Period"(period      Interval<DateTime>,
+                                              visitPeriod Interval<DateTime>):
+  ("Ventilation Periods in Period"(period, visitPeriod)) p
+    aggregate r starting 0:
+      r + duration in hours of (p as Interval<DateTime>)
 
-define function "Ventilation Days in Period"(period Interval<DateTime>):
-  "Ventilation Hours in Period"(period) / 24
+define function "Ventilation Days in Period"(period      Interval<DateTime>,
+                                             visitPeriod Interval<DateTime>):
+  "Ventilation Hours in Period"(period, visitPeriod) / 24
 
 define function "Number of VAP in Period"(period Interval<DateTime>):
   Count(
@@ -155,16 +162,18 @@ define function "Number of VAP in Period"(period Interval<DateTime>):
                    c
   )
 
-define function "VAP Incidence in Period"(period Interval<DateTime>):
+define function "VAP Incidence in Period"(period      Interval<DateTime>,
+                                          visitPeriod Interval<DateTime>):
   // TODO(moringenj): explain "days" since really [0, 1]
   incidence(period,
             "Number of VAP in Period"(period),
-            "Ventilation Days in Period"(period))
+            "Ventilation Days in Period"(period, visitPeriod))
 
-define function "Overall Incidence in Period"(period Interval<DateTime>):
+define function "Overall Incidence in Period"(period      Interval<DateTime>,
+                                              visitPeriod Interval<DateTime>):
   (1) _
     let crbsi: "CRBSI Incidence in Period"(period),
-        vap:   "VAP Incidence in Period"(period)
+        vap:   "VAP Incidence in Period"(period, visitPeriod)
       return case
                when crbsi is null then
                  vap

@@ -75,11 +75,18 @@ define function incidence(period       Interval<DateTime>,
                           relevantDays Decimal):
   case
     when eventCount > 0 and not (relevantDays > 0) then
+      // This call must use the Decimal literal 0.0 (instead of just
+      // 0). Otherwise, mismatching types between the branches
+      // (Integer for the when branch and Decimal for the else branch)
+      // will make the whole case expression evaluate to null.  Not
+      // catching the issue at compile-time and/or failing somewhat
+      // silently at runtime seems to indicate a defficiency in the CQL
+      // engine.
       U.SignalProblemWithValue('In period [' + ToString(start of period) + ', '
                                + ToString(end of period) + '], event count is '
                                + ToString(eventCount) + ' but relevant days is '
                                + ToString(relevantDays),
-                               0)
+                               0.0)
     else
       // This will be null if relevantDays is 0 but in that case,
       // eventCount is also 0.

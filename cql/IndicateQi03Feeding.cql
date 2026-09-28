@@ -154,28 +154,71 @@ define function "Total Insulin Rate in Period"(period Interval<DateTime>):
                       }
       return totalInsulin / periodHours
 
-define function "Maybe Rewrite Calorie Unit"(quantity Quantity):
+define function "Maybe Rewrite Calorie Unit"(quantity        Quantity,
+                                             observationTime DateTime):
   // Assume that energy requirement/intake will be reported with
-  // unit cal instead of cal/d in some cases.
-  (1) _
-    let inCal: convert quantity to 'cal'
-      return if inCal is not null then
-               Quantity{ value: inCal.value, unit: 'cal/d' }
-             else
-               quantity
+  // one of several possible units:
+  // * (convertible to) cal/d is what we need and can remain unchanged
+  // * (convertible to) cal very likely still refers to the daily requirement.
+  //   We simply rewrite the unit without changing the value.
+  // * (convertible to) cal/kg/(24.h) has to be multiplied by a suitable body
+  //   weight measurement.  If we cannot find such a body weight measurement,
+  //   we report an error.
+  // * (convertible to) cal/kg is like the previous case except that we
+  //   additionally rewrite the intermediate result from cal to cal/d.
+  case
+    when quantity is null then
+      null
+    when convert quantity to 'cal/d' is not null then
+      quantity
+    when convert quantity to 'cal' is not null then
+      Quantity{ value: (convert quantity to 'cal').value, unit: 'cal/d' }
+    when convert quantity to 'kcal/kg/(24.h)' is not null then
+      (1) _
+        let bodyWeight: elm."Most Recent Body Weight Measurement Before"(observationTime)
+          return if bodyWeight is not null then
+                   quantity * bodyWeight // cal/d or equivalent
+                 else
+                   U.SignalProblemWithValue(
+                     'Energy requirement ' + ToString(quantity.value) +
+                     + ' ' + quantity.unit + ' is expressed proportional to'
+                     + ' body weight but there is no suitable body weight '
+                     + 'measurement',
+                     null
+                   )
+    when convert quantity to 'cal/kg' is not null then
+      (1) _
+        let bodyWeight: elm."Most Recent Body Weight Measurement Before"(observationTime)
+          return if bodyWeight is not null then
+                   Quantity{
+                     value: (convert (quantity * bodyWeight) to 'cal').value,
+                     unit:  'cal/d'
+                   }
+                 else
+                   U.SignalProblemWithValue(
+                     'Energy requirement ' + ToString(quantity.value) +
+                     + ' ' + quantity.unit + ' is expressed proportional to'
+                     + ' body weight but there is no suitable body weight '
+                     + 'measurement',
+                     null
+                   )
+    else
+      U.SignalProblemWithValue('Could not convert the energy requirement unit '
+                               + '\'' + quantity.unit + '\' to cal/d', null)
+  end
 
 // Return the daily energy requirement as a Quantity with unit kcal/d
 // if there is a energy requirement observation in the given period.
 // Otherwise return null.
 define function "Last Energy Requirement Observation in Period"(period Interval<DateTime>):
   (1) _
-    let observation: Last("Energy Requirement Observations" o
-                            where o.observationDatetime in period
-                            return all o),
-        // The following returns null if observation is null.
-        // TODO(moringenj): Use error-checking conversion
-        quantity:    convert observation to Quantity
-      return "Maybe Rewrite Calorie Unit"(quantity)
+    let observation:     Last("Energy Requirement Observations" o
+                                where o.observationDatetime in period
+                                return all o),
+        // The following are all null if observation is null.
+        quantity:        convert observation to Quantity,
+        observationTime: convert observation to DateTime
+      return "Maybe Rewrite Calorie Unit"(observation, observationTime)
 
 define function "Median CO2 Production Rate in Period"(period Interval<DateTime>):
   Median("CO2 Production Rate Measurements" m
@@ -185,23 +228,23 @@ define function "Median CO2 Production Rate in Period"(period Interval<DateTime>
 define function "Calorie Intake in Period"(period Interval<DateTime>):
   // There should be exactly one such measurement in each 24-hour period.
   (1) _
-    let measurements: "Calorie Intake Measurements" m
-                        where m in period
-                        return all m,
-        measurement:  case Count(measurements)
-                        when 0 then
-                          null
-                        when 1 then
-                          First(measurements)
-                        else
-                          Message(First(measurements), true, '400', 'Warning',
-                                  'Multiple calorie intake measurements in'
-                                  + ' 24-hour period; using first measurement')
-                      end,
-        // The following returns null if observation is null.
-        // TODO(moringenj): Use error-checking conversion
-        quantity:     convert measurement to Quantity
-      return "Maybe Rewrite Calorie Unit"(quantity)
+    let measurements:    "Calorie Intake Measurements" m
+                           where m in period
+                           return all m,
+        measurement:     case Count(measurements)
+                           when 0 then
+                             null
+                           when 1 then
+                             First(measurements)
+                           else
+                             Message(First(measurements), true, '400', 'Warning',
+                                     'Multiple calorie intake measurements in'
+                                     + ' 24-hour period; using first measurement')
+                         end,
+        // The following are all null if measurement is null.
+        quantity:        convert measurement to Quantity,
+        measurementTime: convert measurement to DateTime
+      return "Maybe Rewrite Calorie Unit"(quantity, measurementTime)
 
 define function "Renal Replacement Therapy Procedure in Period"(period Interval<DateTime>):
   Exists("Renal Replacement Therapy Procedures" p

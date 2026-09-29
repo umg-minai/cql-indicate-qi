@@ -31,17 +31,46 @@ define function ToObservation(
   ):
   if Exists((result.periods) p where p.qi is not null) then
     (result.periods) p
-      where p.qi is not null
+      //where p.qi is not null
       return all OMOP.Observation{
         observationConceptId:   indicatorConceptId,
         observationTypeConcept: NoMatchingConcept,
         observationDatetime:    start of p.period,
         observationDate:        date from start of p.period,
-        person:                 null, // result.patient.personId,
+        person:                 result.patient,
         valueAsNumber:          p.qi
       }
   else
     {}
+
+define function ToDebugObservation(baseConceptId Integer,
+                                   periods       List<Tuple{
+                                                   period Interval<DateTime>,
+                                                   values List<Decimal>
+                                                 }>):
+  Flatten(
+    (periods) p
+      return all
+        (
+          (p.values) v aggregate r starting ({o: {}, i: 1}):
+            {
+              o: Flatten({
+                   r.o,
+                   {
+                     OMOP.Observation{
+                       observationConceptId:   baseConceptId + r.i,
+                       observationTypeConcept: NoMatchingConcept,
+                       observationDatetime:    start of p.period,
+                       observationDate:        date from start of p.period,
+                       person:                 null, // result.patient.personId,
+                       valueAsNumber:          v
+                     }
+                   }
+                 }),
+              i: r.i + 1
+            }
+        ).o
+  )
 
 context Patient
 
@@ -56,4 +85,6 @@ define Results:
     ToObservation(2000100107, "Qi07".Result),
     ToObservation(2000100108, "Qi08".Result),
     ToObservation(2000100109, "Qi09".Result)
+
+    //ToDebugObservation(2000103000, "Qi04"."Debug Results")
   })

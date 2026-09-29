@@ -11,11 +11,13 @@ library Test version '1.0.0'
 
 include "TimePeriodsTest"
 
+//include "IndicateQi03FeedingTest"
 include "IndicateQi04GlucoseControlTest"
 include "IndicateQi06InfectionRateTest"
 
 define Results: Flatten({
   TimePeriodsTest.Results,
+  //"IndicateQi03FeedingTest".Results,
   "IndicateQi04GlucoseControlTest".Results,
   "IndicateQi06InfectionRateTest".Results
 })

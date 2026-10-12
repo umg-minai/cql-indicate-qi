@@ -509,3 +509,51 @@ define "Visit Results":
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")
+
+define "Debug Results":
+  Flatten(
+    (T."Visits with 24-hour Periods") visitWithPeriods
+      return all
+        (
+          (visitWithPeriods.fullyContainedPeriods) p aggregate r
+          starting ({
+                      previousPeriod: null,
+                      previousTarget: null,
+                      dayOfVisit:     0,
+                      results:        {} as List<Tuple{period Interval<DateTime>, values List<Decimal>}>
+                    }):
+          (1) _
+            // In the following, if target is null (which is the case when
+            // dayOfVisit is 0), result is true.  If "Calorie Intake in
+            // Period"(p) is null, result is also null and then the results
+            // property of the accumulator is left unchanged so the period
+            // not counted as "good".
+            let target: "Calorie Target for 24-hour Period"(
+                          r.previousTarget,
+                          r.previousPeriod,
+                          p,
+                          r.dayOfVisit
+                        ),
+                insulin: "Total Insulin Rate in Period"(p),
+                actual: "Calorie Intake in Period"(p),
+                result: if target is null then
+                          false
+                        else
+                          0.9 * target <= actual and actual <= 1.1 * target,
+                entry:  {
+                          period: p,
+                          values: {
+                                    (convert insulin to '[IU]/h').value as Decimal,
+                                    (convert target to 'kcal/d').value  as Decimal,
+                                    (convert actual to 'kcal/d').value  as Decimal,
+                                    if result then 1.0 else 0.0
+                                  } as List<Decimal>
+                        }
+              return {
+                       previousPeriod: p,
+                       previousTarget: target,
+                       dayOfVisit:     r.dayOfVisit + 1,
+                       results:        Flatten({r.results, { entry }})
+                     }
+        ).results
+  ) as List<Tuple{period Interval<DateTime>, values List<Decimal>}>

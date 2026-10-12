@@ -86,12 +86,14 @@ define "Phosphate Measurements":
     sort by measurementDatetime desc
 
 define "Insulin Exposures":
-        ([DrugExposure: InsulinDrugs."Insulin Drugs"] d
-           where U.CheckDateTimeInterval(d)
-           return all d)
-  union ([DrugExposure: InsulinIngredients."Insulin Ingredients"] d
-           where U.CheckDateTimeInterval(d)
-           return all d)
+  Flatten({
+    [DrugExposure: InsulinDrugs."Insulin Drugs"] d
+      where U.CheckDateTimeInterval(d)
+      return all d,
+    [DrugExposure: InsulinIngredients."Insulin Ingredients"] d
+      where U.CheckDateTimeInterval(d)
+      return all d
+  })
 
 define "Energy Requirement Observations":
   [Observation: "Estimated required quantity of energy in 24 hours"] o

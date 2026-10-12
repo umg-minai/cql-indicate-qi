@@ -24,7 +24,7 @@ define "Anticoagulation Drug Exposures":
   [DrugExposure: "AnticoagulationDrugs"."Anticoagulation Drugs"] e
     where U.CheckDateTimeInterval(e)
     return all e
-    sort by drugExposureStartDatetime asc
+    //sort by drugExposureStartDatetime asc
 
 define function "24-hour Period with Conforming Medication"(period Interval<DateTime>):
   Exists("Anticoagulation Drug Exposures" e

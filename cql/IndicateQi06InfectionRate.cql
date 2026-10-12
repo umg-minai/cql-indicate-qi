@@ -30,6 +30,11 @@ code "Infection of Hemodialyses Catheter":                                 '7649
 code "Infection associated with totally implantable venous access device": '43021261' from elm.OMOPSV
 code "Infection of central venous catheter exit site":                     '4326841'  from elm.OMOPSV
 code "Infection of hemodialysis temporary catheter":                       '764924'   from elm.OMOPSV
+code "CLABSI - central line associated bloodstream infection":             '42537043' from elm.OMOPSV
+code "Candidemia associated with intravascular line":                      '4201197'  from elm.OMOPSV
+code "Infection of bloodstream associated with hemodialysis catheter":     '42537495' from elm.OMOPSV
+code "Infection of bloodstream associated with temporary hemodialysis catheter": '42537540' from elm.OMOPSV
+code "Infection of bloodstream associated with tunneled hemodialysis catheter":  '42537497' from elm.OMOPSV
 
 concept "Catheter-related Bloodstream Infection": {
   "CRBSI, general",
@@ -37,7 +42,12 @@ concept "Catheter-related Bloodstream Infection": {
   "Infection of Hemodialyses Catheter",
   "Infection associated with totally implantable venous access device",
   "Infection of central venous catheter exit site",
-  "Infection of hemodialysis temporary catheter"
+  "Infection of hemodialysis temporary catheter",
+  "CLABSI - central line associated bloodstream infection",
+  "Candidemia associated with intravascular line",
+  "Infection of bloodstream associated with hemodialysis catheter",
+  "Infection of bloodstream associated with temporary hemodialysis catheter",
+  "Infection of bloodstream associated with tunneled hemodialysis catheter"
 }
 
 // Ventilation: Procedure, Infection (Pneumonia)

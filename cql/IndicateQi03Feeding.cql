@@ -115,8 +115,10 @@ define "Calorie Intake Measurements":
   [Measurement: "Calorie Intake Total 24 Hour"]
 
 define "Renal Replacement Therapy Procedures":
-        [ProcedureOccurrence: "Continuous Renal Replacement Therapy"]
-  union [ProcedureOccurrence: "Other Renal Replacement Therapy"]
+  Flatten({
+    [ProcedureOccurrence: "Continuous Renal Replacement Therapy"],
+    [ProcedureOccurrence: "Other Renal Replacement Therapy"]
+  })
 
 define function "Last Phosphate Measurement in Period"(period Interval<DateTime>):
   (1) _

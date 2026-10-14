@@ -32,15 +32,15 @@ def write_library(concept_sets,
                   concept_definition_name,
                   repository_url,
                   commit):
-    write_drugs_to_file(concept_sets,
-                        f"{output_directory}/{library_name}.cql",
+    write_library_to_file(concept_sets,
+                          f"{output_directory}/{library_name}.cql",
                         library_name,
                         concept_definition_name,
                         repository_url,
                         commit)
 
 
-def write_drugs_to_file(concept_sets,
+def write_library_to_file(concept_sets,
                         filename,
                         library_name,
                         concept_definition_name,

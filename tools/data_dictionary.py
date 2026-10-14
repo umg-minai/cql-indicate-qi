@@ -1,4 +1,4 @@
-import xdg.BaseDirectory as xdg_base_directory
+import xdg.BaseDirectory as BaseDirectory
 import pathlib
 import subprocess
 import json
@@ -6,7 +6,7 @@ import glob
 
 
 REPOSITORY_URL  = "https://github.com/indicate-eu/data-dictionary"
-CACHE_DIRECTORY = pathlib.Path(xdg_base_directory.xdg_cache_home)
+CACHE_DIRECTORY = pathlib.Path(BaseDirectory.xdg_cache_home)
 CLONE_DIRECTORY = CACHE_DIRECTORY / 'indicate' / 'data-dictionary'
 
 

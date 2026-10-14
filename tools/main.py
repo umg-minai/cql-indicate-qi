@@ -9,7 +9,12 @@ app = typer.Typer()
 
 @app.command()
 def generate_cql(output_directory: Path):
-    terminology_from_data_dictionary.main(output_directory)
+    terminology_from_data_dictionary.generate_cql(output_directory)
+
+
+@app.command()
+def generate_markdown(output_directory: Path):
+    terminology_from_data_dictionary.generate_markdown(output_directory)
 
 
 @app.command()

@@ -1,0 +1,18 @@
+mappings:
+  - name:        InsulinDrugs
+    category:    Medications
+    subcategory: "Other drugs"
+
+  - name:        AnticoagulationDrugs
+    category:    Medications
+    subcategory: "Anticoagulants"
+
+  # Concept set "Tidal volume (Vt)" (322) which indicates
+  # measurements with unit mL.  Don't include "Tidal volume per body
+  # weight (Vt/kg)" (362) since that concept set uses the unit
+  # mL/kg.
+  - name:         TidalVolumeMeasurements
+    concept_sets: [322]
+
+  - name:         MobilizationProcedures
+    concept_sets: [294]

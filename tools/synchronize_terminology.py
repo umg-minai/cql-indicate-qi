@@ -1,7 +1,7 @@
 from analysis import concept_set_usage
 from cql import retrieve_used_concepts
 from data_dictionary import load_resolved_concept_sets
-from utilities import format_concept_set, format_concept
+from utilities import format_concept_set_for_terminal, format_concept_for_terminal
 
 
 def synchronize():
@@ -26,7 +26,7 @@ def synchronize():
         deprecated            = concept_set.get("deprecated")
         if deprecated:
             print("\033[31m", end='')
-        print(f"* {format_concept_set(concept_set_id, concept_set_name)}, {len(all_concepts)} concept(s)")
+        print(f"* {format_concept_set_for_terminal(concept_set_id, concept_set_name)}, {len(all_concepts)} concept(s)")
         if deprecated:
             print("\033[0m", end='')
         def map_with_limit(collection, function, limit=5):
@@ -39,7 +39,7 @@ def synchronize():
             def print_unreferenced(concept):
                 concept_id   = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
-                print(f"  * {format_concept(concept_id, concept_name)}")
+                print(f"  * {format_concept_for_terminal(concept_id, concept_name)}")
             map_with_limit(
                 sorted(unreferenced_concepts, key=lambda concept: concept.get("conceptName")),
                 print_unreferenced)
@@ -49,7 +49,7 @@ def synchronize():
                 concept_id      = int(concept.get('id'))
                 concept_name    = concept.get('name')
                 using_libraries = concept.get("usingLibraries", [])
-                print(f"  * {', '.join(using_libraries)}: {format_concept(concept_id, concept_name)}")
+                print(f"  * {', '.join(using_libraries)}: {format_concept_for_terminal(concept_id, concept_name)}")
             map_with_limit(
                 sorted(used_concepts.values(), key=lambda concept: concept.get("name")),
                 print_used)
@@ -60,6 +60,6 @@ def synchronize():
         for concept in sorted(unmapped_concepts, key=lambda x: x.get("name") or ""):
             concept_id   = int(concept.get('id'))
             concept_name = concept.get('name')
-            print(f"* {format_concept(concept_id, concept_name)}")
+            print(f"* {format_concept_for_terminal(concept_id, concept_name)}")
 
     return used_concept_sets

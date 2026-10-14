@@ -36,24 +36,40 @@ code "Calorie Intake Total 24 Hour": '3026267' from elm.OMOPSV // measurement
 
 code "CO2 Production Rate": '21490580' from elm.OMOPSV // measurement
 
-code "Continuous Venovenous Hemofiltration":    '4051330' from elm.OMOPSV
-code "Continuous Venovenous Hemodialysis":      '4051329' from elm.OMOPSV
-code "Continuous Venovenous Hemodiafiltration": '4049846' from elm.OMOPSV
-code "Intermittent Hemodialysis":               '4051326' from elm.OMOPSV
+code "Continuous Renal Replacement Therapy": '37018292' from elm."OMOPSV Hierarchy"
 
-concept "Renal Replacement Therapy": {
-  "Continuous Venovenous Hemofiltration",
-  "Continuous Venovenous Hemodialysis",
-  "Continuous Venovenous Hemodiafiltration",
-  "Intermittent Hemodialysis"
+code "Hemodialysis":                                              '4120120'  from elm.OMOPSV
+code "Hemofiltration":                                            '4050864'  from elm.OMOPSV
+code "Hemodiafiltration":                                         '4049845'  from elm.OMOPSV
+code "Intermittent Hemodialysis":                                 '4051326'  from elm.OMOPSV
+code "Intermittent Hemodialysis with Continuous Ultrafiltration": '4050862'  from elm.OMOPSV
+code "Intermittent Hemodialysis with Sequential Ultrafiltration": '4051327'  from elm.OMOPSV
+code "Intermittent Hemofiltration":                               '4050865'  from elm.OMOPSV
+code "Intermittent Hemodiafiltration":                            '4052538'  from elm.OMOPSV
+code "Sustained Low-efficiency Dialysis":                         '44783963' from elm.OMOPSV
+code "Prolonged Intermittent Renal Replacement Therapy":          '619390'   from elm.OMOPSV
+
+concept "Other Renal Replacement Therapy": {
+  "Hemodialysis",
+  "Hemofiltration",
+  "Hemodiafiltration",
+  "Intermittent Hemodialysis",
+  "Intermittent Hemodialysis with Continuous Ultrafiltration",
+  "Intermittent Hemodialysis with Sequential Ultrafiltration",
+  "Intermittent Hemofiltration",
+  "Intermittent Hemodiafiltration",
+  "Sustained Low-efficiency Dialysis",
+  "Prolonged Intermittent Renal Replacement Therapy"
 }
 
 code "Phosphate in Serum or Plasma (Moles/volume)": '3003458' from elm.OMOPSV
+code "Phosphate in Serum or Plasma (Mass/volume)":  '3011904' from elm.OMOPSV
 code "Phosphate in Blood (Moles/volume)":           '3018913' from elm.OMOPSV
 code "Phosphate in Blood (Mass/volume)":            '3024232' from elm.OMOPSV
 
 concept "Phosphate Measurement": {
   "Phosphate in Serum or Plasma (Moles/volume)",
+  "Phosphate in Serum or Plasma (Mass/volume)",
   "Phosphate in Blood (Moles/volume)",
   "Phosphate in Blood (Mass/volume)"
 }
@@ -99,7 +115,10 @@ define "Calorie Intake Measurements":
   [Measurement: "Calorie Intake Total 24 Hour"]
 
 define "Renal Replacement Therapy Procedures":
-  [ProcedureOccurrence: "Renal Replacement Therapy"]
+  Flatten({
+    [ProcedureOccurrence: "Continuous Renal Replacement Therapy"],
+    [ProcedureOccurrence: "Other Renal Replacement Therapy"]
+  })
 
 define function "Last Phosphate Measurement in Period"(period Interval<DateTime>):
   (1) _

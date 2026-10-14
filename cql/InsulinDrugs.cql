@@ -14,10 +14,10 @@ library "InsulinDrugs"
 
 include IndicateQiElements called E
 
-code "insulin aspart, human": '1567198' from E."OMOPSV Hierarchy"
-code "insulin degludec": '35602717' from E."OMOPSV Hierarchy"
-code "insulin detemir": '1516976' from E."OMOPSV Hierarchy"
-code "insulin glargine": '1502905' from E."OMOPSV Hierarchy"
+code "insulin aspart, human":    '1567198' from E."OMOPSV Hierarchy"
+code "insulin degludec":         '35602717' from E."OMOPSV Hierarchy"
+code "insulin detemir":          '1516976' from E."OMOPSV Hierarchy"
+code "insulin glargine":         '1502905' from E."OMOPSV Hierarchy"
 code "insulin glulisine, human": '1544838' from E."OMOPSV Hierarchy"
 
 concept "Insulin Drugs": {

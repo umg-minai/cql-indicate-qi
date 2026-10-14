@@ -16,3 +16,41 @@ mappings:
 
   - name:         MobilizationProcedures
     concept_sets: [294]
+
+  - name:         PhosphateMeasurements
+    concept_sets: [210]
+    exclude:
+      - concept_id: 37064066
+        name:       Phosphate | Blood | Chemistry - non-challenge
+      - concept_id: 37062662
+        name:       Phosphate | Serum or Plasma | Chemistry - non-challenge
+      - concept_id: 3050450
+        name:       Phosphate [Mass/volume] in Serum or Plasma --post dialysis
+      - concept_id: 3049552
+        name:       Phosphate [Mass/volume] in Serum or Plasma --pre dialysis
+      - concept_id: 40759093
+        name:       Phosphate [Moles/volume] in Serum or Plasma --post dialysis
+
+  - name:         GlucoseMeasurements
+    concept_sets: [207]
+    exclude:
+      - concept_id: 40757626
+        name:       Glucose [Moles/volume] in Serum or Plasma --post dialysis
+      - concept_id: 46235168
+        name:       Fasting glucose [Moles/volume] in Blood
+      - concept_id: 46236950
+        name:       Fasting glucose [Moles/volume] in Serum, Plasma or Blood
+      - concept_id: 37035201
+        name:       Glucose | Blood arterial | Chemistry - non-challenge
+      - concept_id: 37023397
+        name:       Glucose | Blood capillary | Chemistry - non-challenge
+      - concept_id: 1762037
+        name:       Glucose | Blood mixed venous | Chemistry - non-challenge
+      - concept_id: 37030222
+        name:       Glucose | Blood venous | Chemistry - non-challenge
+      - concept_id: 37034437
+        name:       Glucose | Blood | Chemistry - non-challenge
+      - concept_id: 37065054
+        name:       Glucose | Serum or Plasma | Chemistry - non-challenge
+      - concept_id: 37060543
+        name: Glucose | Serum, Plasma or Blood | Chemistry - non-challenge

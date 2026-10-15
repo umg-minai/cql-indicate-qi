@@ -7,30 +7,6 @@ mappings:
     category:    Medications
     subcategory: "Anticoagulants"
 
-  # Concept set "Tidal volume (Vt)" (322) which indicates
-  # measurements with unit mL.  Don't include "Tidal volume per body
-  # weight (Vt/kg)" (362) since that concept set uses the unit
-  # mL/kg.
-  - name:         TidalVolumeMeasurements
-    concept_sets: [322]
-
-  - name:         MobilizationProcedures
-    concept_sets: [294]
-
-  - name:         PhosphateMeasurements
-    concept_sets: [210]
-    exclude:
-      - concept_id: 37064066
-        name:       Phosphate | Blood | Chemistry - non-challenge
-      - concept_id: 37062662
-        name:       Phosphate | Serum or Plasma | Chemistry - non-challenge
-      - concept_id: 3050450
-        name:       Phosphate [Mass/volume] in Serum or Plasma --post dialysis
-      - concept_id: 3049552
-        name:       Phosphate [Mass/volume] in Serum or Plasma --pre dialysis
-      - concept_id: 40759093
-        name:       Phosphate [Moles/volume] in Serum or Plasma --post dialysis
-
   - name:         GlucoseMeasurements
     concept_sets: [207]
     exclude:
@@ -54,3 +30,33 @@ mappings:
         name:       Glucose | Serum or Plasma | Chemistry - non-challenge
       - concept_id: 37060543
         name: Glucose | Serum, Plasma or Blood | Chemistry - non-challenge
+
+  - name:         PhosphateMeasurements
+    concept_sets: [210]
+    exclude:
+      - concept_id: 37064066
+        name:       Phosphate | Blood | Chemistry - non-challenge
+      - concept_id: 37062662
+        name:       Phosphate | Serum or Plasma | Chemistry - non-challenge
+      - concept_id: 3050450
+        name:       Phosphate [Mass/volume] in Serum or Plasma --post dialysis
+      - concept_id: 3049552
+        name:       Phosphate [Mass/volume] in Serum or Plasma --pre dialysis
+      - concept_id: 40759093
+        name:       Phosphate [Moles/volume] in Serum or Plasma --post dialysis
+
+  - name:         MobilizationProcedures
+    concept_sets: [294]
+
+  - name:         RenalReplacementTherapyProcedures
+    concept_sets: [298]
+
+  - name:         PEEPMeasurements
+    concept_sets: [318]
+
+  # Concept set "Tidal volume (Vt)" (322) which indicates
+  # measurements with unit mL.  Don't include "Tidal volume per body
+  # weight (Vt/kg)" (362) since that concept set uses the unit
+  # mL/kg.
+  - name:         TidalVolumeMeasurements
+    concept_sets: [322]

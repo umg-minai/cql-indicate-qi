@@ -66,7 +66,21 @@ concept "PEEP Measurement": {
   "Positive end expiratory pressure setting Ventilator"
 }
 
-code "Plateau Pressure Measurement": '44782825' from elm.OMOPSV
+code "Airway plateau pressure":                                                             '44782825' from elm.OMOPSV
+code "Airway pressure --at zero inspiratory flow on ventilator":                            '3006369' from elm.OMOPSV
+code "Airway pressure by Airway pressure monitor --at zero inspiratory flow on ventilator": '3012810' from elm.OMOPSV
+code "Dynamic plateau pressure":                                                            '21490565' from elm.OMOPSV
+code "Pressure.plateau Respiratory system airway":                                          '36304439' from elm.OMOPSV
+code "Pressure.plateau Respiratory system airway --on ventilator":                          '36303946' from elm.OMOPSV
+
+concept "Plateau Pressure Measurement": {
+  "Airway plateau pressure",
+  "Airway pressure --at zero inspiratory flow on ventilator",
+  "Airway pressure by Airway pressure monitor --at zero inspiratory flow on ventilator",
+  "Dynamic plateau pressure",
+  "Pressure.plateau Respiratory system airway",
+  "Pressure.plateau Respiratory system airway --on ventilator"
+}
 
 // Unit: usually cmH2O but may be some other pressure unit.  Converted to
 // cm[H2O] in "Peak Inspiratory Pressure Measurements".

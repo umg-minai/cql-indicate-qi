@@ -1,4 +1,4 @@
-import xdg
+import xdg.BaseDirectory as xdg_base_directory
 import pathlib
 import subprocess
 import json
@@ -6,7 +6,7 @@ import glob
 
 
 REPOSITORY_URL  = "https://github.com/indicate-eu/data-dictionary"
-CACHE_DIRECTORY = pathlib.Path(xdg.xdg_cache_home())
+CACHE_DIRECTORY = pathlib.Path(xdg_base_directory.xdg_cache_home)
 CLONE_DIRECTORY = CACHE_DIRECTORY / 'indicate' / 'data-dictionary'
 
 
@@ -110,5 +110,7 @@ def load_project(project_id):
 
 def store_project(project_id, data):
     directory, _ = ensure_data_dictionary_clone()
-    with open(project_file_name(directory, project_id), 'w') as file:
+    filename = project_file_name(directory, project_id)
+    with open(filename, 'w') as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
+    return filename

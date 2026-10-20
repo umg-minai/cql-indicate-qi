@@ -1,0 +1,7 @@
+pandas
+pydantic
+python-docx
+pyyaml
+requests
+typer
+pyxdg

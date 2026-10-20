@@ -111,10 +111,7 @@ def update():
         today = datetime.date.today().isoformat()
         project["modifiedDate"] = today
 
-        store_project(project_id, project)
+        filename = store_project(project_id, project)
+        print(f"Project info written to {filename}")
     else:
         print(f"\033[2mNo changes\033[0m")
-
-
-if __name__ == '__main__':
-    update()

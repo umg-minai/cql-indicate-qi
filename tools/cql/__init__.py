@@ -2,7 +2,7 @@ import json
 import subprocess
 
 
-JAR_FILENAME = '../cql-on-omop.jar'
+JAR_FILENAME = 'cql-on-omop.jar'
 
 
 DATABASE_PORT     = 9432
@@ -24,7 +24,7 @@ def retrieve_used_concepts(timeout=60):
                                   '--password', DATABASE_PASSWORD,
                                   '-d',         DATABASE_NAME,
                                   '--schema',   DATABASE_SCHEMA,
-                                  '-I', '../../cql/',
+                                  '-I', '../cql/',
                                   'Main'],
                                   capture_output=True,
                                   text=True,

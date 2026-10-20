@@ -86,7 +86,3 @@ def synchronize():
             print(f"* {format_concept(concept_id, concept_name)}")
 
     return used_concept_sets
-
-
-if __name__ == '__main__':
-    synchronize()

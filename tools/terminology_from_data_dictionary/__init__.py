@@ -10,6 +10,7 @@ from data_dictionary import load_concept_sets
 def generate_library_for_category(concept_sets,
                                   category,
                                   subcategory,
+                                  output_directory,
                                   library_name,
                                   concept_definition_name,
                                   repository_url,
@@ -24,6 +25,7 @@ def generate_library_for_category(concept_sets,
             and en.get("subcategory") == subcategory
     relevant_concept_sets = [concept_set for concept_set in concept_sets if is_matching_concept_set(concept_set)]
     write_library(relevant_concept_sets,
+                  output_directory,
                   library_name,
                   concept_definition_name,
                   repository_url,
@@ -31,12 +33,13 @@ def generate_library_for_category(concept_sets,
 
 
 def write_library(concept_sets,
+                  output_directory,
                   library_name,
                   concept_definition_name,
                   repository_url,
                   commit):
     write_drugs_to_file(concept_sets,
-                        f"../../cql/{library_name}.cql",
+                        f"{output_directory}/{library_name}.cql",
                         library_name,
                         concept_definition_name,
                         repository_url,
@@ -95,13 +98,14 @@ include IndicateQiElements called E
         file.write("\n}\n")
 
 
-def main():
+def main(output_directory):
     """Main function to fetch data and generate libraries."""
     concept_sets, repository_url, commit = load_concept_sets()
 
     generate_library_for_category(concept_sets.values(),
                                   "Medications",
                                   "Other drugs",
+                                  output_directory,
                                   'InsulinDrugs',
                                   'Insulin Drugs',
                                   repository_url,
@@ -110,6 +114,7 @@ def main():
     generate_library_for_category(concept_sets.values(),
                                   "Medications",
                                   'Anticoagulants',
+                                  output_directory,
                                   'AnticoagulationDrugs',
                                   'Anticoagulation Drugs',
                                   repository_url,
@@ -120,19 +125,15 @@ def main():
     # weight (Vt/kg)" (362) since that concept set uses the unit
     # mL/kg.
     write_library([ concept_sets[322] ],
+                  output_directory,
                   'TidalVolumeMeasurements',
                   'Tidal Volume Measurements',
                   repository_url,
                   commit)
 
     write_library([ concept_sets[294] ],
+                  output_directory,
                   "MobilizationProcedures",
                   "Mobilization Procedures",
                   repository_url,
                   commit)
-
-    return None
-
-
-if __name__ == "__main__":
-    main()

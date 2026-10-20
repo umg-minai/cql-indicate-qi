@@ -1,9 +1,3 @@
-import pprint
-import json
-import pathlib
-import sys
-
-sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
 from data_dictionary import load_concept_sets
 
 

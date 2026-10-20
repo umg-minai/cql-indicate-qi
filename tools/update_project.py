@@ -1,27 +1,11 @@
 import copy
 import datetime
-import pathlib
-import sys
 from typing import List
 
-sys.path.append(pathlib.Path(__file__).parent.parent.as_posix())
-from data_dictionary import load_resolved_concept_sets, load_concept_set_versions, load_project, store_project
-from cql import retrieve_used_concepts
 from analysis import concept_set_usage
-
-
-UI_URL = "https://indicate-eu.github.io/data-dictionary"
-
-
-def format_concept_set(concept_set_id, concept_set_name, concept_set_version):
-    return f"\033]8;;{UI_URL}/#/concept-sets?id={concept_set_id}\033\\{concept_set_name} ({concept_set_id})\033]8;;\033\\" \
-        + f"; version {concept_set_version}"
-
-
-def format_concept_set_via_id(concept_set_id, all_concept_sets, concept_set_version):
-    concept_set = all_concept_sets[concept_set_id]
-    concept_set_name = concept_set.get('name')
-    return format_concept_set(concept_set_id, concept_set_name, concept_set_version)
+from cql import retrieve_used_concepts
+from data_dictionary import load_resolved_concept_sets, load_concept_set_versions, load_project, store_project
+from utilities import format_concept_set, format_concept_set_via_id
 
 
 def update():
@@ -63,7 +47,7 @@ def update():
             for used_concept in used_concept_set.get("used_concepts").values():
                 for using_library in used_concept.get("usingLibraries", []):
                     using_libraries.add(using_library)
-            print(f"New in CQL '{used_concept_set.get("name")}' ({used_concept_set_id}) in {used_concept_set.get("category")}::{used_concept_set.get("subcategory")} libraries {using_libraries}")
+            print(f"New in CQL '{format_concept_set(used_concept_set_id, used_concept_set.get("name"))}' in {used_concept_set.get("category")}::{used_concept_set.get("subcategory")} libraries {using_libraries}")
             new_project_concept_sets[used_concept_set_id] = {"id": used_concept_set_id,
                                                              "version": get_latest_version(used_concept_set_id)}
             any_change = True

@@ -45,11 +45,29 @@ mappings:
       - concept_id: 40759093
         name:       Phosphate [Moles/volume] in Serum or Plasma --post dialysis
 
+  - name:         BodyHeight
+    concept_sets: [274]
+
+  - name:         IdealBodyWeight
+    concept_sets: [284]
+
   - name:         MobilizationProcedures
     concept_sets: [294]
 
   - name:         RenalReplacementTherapyProcedures
     concept_sets: [298]
+
+  - name:         EndotrachealTube
+    concept_sets: [299]
+
+  - name:         Extubation
+    concept_sets: [303]
+
+  - name:         InvasiveMechanicalVentilation
+    concept_sets: [306]
+
+  - name:         TrialOfSpontaneousBreathing
+    concept_sets: [309]
 
   - name:         PEEPMeasurements
     concept_sets: [318]

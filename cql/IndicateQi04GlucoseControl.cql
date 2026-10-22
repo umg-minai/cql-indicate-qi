@@ -253,3 +253,10 @@ define "Visit Results":
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")
+
+define "Debug Results":
+  Flatten(
+    (T."Visits with 24-hour Periods") visitWithPeriods
+      return all (visitWithPeriods.overlappingPeriods) p
+        return all { period: p, values: { 1.0 as Decimal } }
+  )

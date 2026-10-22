@@ -116,10 +116,10 @@ define function "CVC Periods in Period"(period Interval<DateTime>):
 
 define function "CVC Hours in Period"(period Interval<DateTime>):
   ("CVC Periods in Period"(period)) p aggregate r starting 0:
-    r + duration in hours of (p as Interval<DateTime>)
+    r + (duration in seconds of (p as Interval<DateTime>)) / 3600.0
 
 define function "CVC Days in Period"(period Interval<DateTime>):
-  "CVC Hours in Period"(period) / 24
+  ("CVC Hours in Period"(period) as Decimal) / 24.0
 
 define function "Number of CRBSI in Period"(period Interval<DateTime>):
   Count(
@@ -210,7 +210,10 @@ define "Visit Results":
                    return all elm."Period Result"(
                      period,
                      inInitialPopulationForVisit,
-                     0,
+                     Min({1, Max({0, ((1 * 1000) / ((duration in hours of period) / 24)
+                                      - "Overall Incidence in Period"(period,visitWithPeriods.visit))
+                                     / 1000})})
+                     ,
                      1 // TODO(moringenj): infection → 1000 , else → 0
                    )
 

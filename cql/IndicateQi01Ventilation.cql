@@ -501,3 +501,52 @@ define "Visit Results":
                                                     denominator)
 
 define Result: elm."Overall Result"(Patient, "Visit Results")
+
+
+define "Debug Results":
+  Flatten(
+    (T."Visits with 24-hour Periods") visitWithPeriods
+      let visitInterval:               visitWithPeriods.visit,
+          inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
+          measurementsInVisit:         ("PEEP Measurements") m
+                                         where m in visitInterval
+                                         return all m
+        return all (visitWithPeriods.overlappingPeriods) p
+          let measurementsInPeriod: (measurementsInVisit) m
+                                      where m in p
+                                      return all m,
+              peepQuantity:         Median(
+                                      (measurementsInPeriod) m
+                                        return all convert m to Quantity
+                                    ),
+              tidalVolume:          Median(
+                                      (measurementsInPeriod) m
+                                        let peepTime: convert m to DateTime
+                                          return all "Tidal Volume LOCF"(peepTime)
+                                    ),
+              plateauPressure:      Median(
+                                      (measurementsInPeriod) m
+                                        let peepTime: convert m to DateTime
+                                          return all "Effective Plateau Pressure"(peepTime)
+                                    ),
+              pressureDifference:   Median(
+                                      (measurementsInPeriod) m
+                                        let peepTime: convert m to DateTime
+                                          return all plateauPressure - peepQuantity
+                                    ),
+              recommendedPEEP:      Median(
+                                      (measurementsInPeriod) m
+                                        let peepTime: convert m to DateTime
+                                          return all "Recommended PEEP for PaO2"(peepTime)
+                                    )
+          return all {
+                       period: p,
+                       values: {
+                                 (convert peepQuantity to 'cm[H2O]').value       as Decimal,
+                                 (convert tidalVolume to 'mL').value             as Decimal,
+                                 (convert plateauPressure to 'cm[H2O]').value    as Decimal,
+                                 (convert pressureDifference to 'cm[H2O]').value as Decimal,
+                                 (convert recommendedPEEP to 'cm[H2O]').value    as Decimal
+                               }
+                     }
+  )

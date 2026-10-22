@@ -89,5 +89,6 @@ define Results:
     ToDebugObservation(2000101000, "Qi01"."Debug Results"),
     ToDebugObservation(2000102000, "Qi02"."Debug Results"),
     ToDebugObservation(2000103000, "Qi03"."Debug Results"),
-    ToDebugObservation(2000106000, "Qi06"."Debug Results")
+    ToDebugObservation(2000106000, "Qi06"."Debug Results"),
+    ToDebugObservation(2000107000, "Qi07"."Debug Results")
   })

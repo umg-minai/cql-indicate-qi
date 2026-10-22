@@ -87,7 +87,16 @@ define function "Insulin Amount in IU"(quantity Quantity):
 // whether the amount is per-volume.
 define function "Insulin Strength in IU"(drugStrength DrugStrength):
   (1) _
-    let quantity:     convert drugStrength to Quantity,
+    let quantity:     if drugStrength.amountValue is null and drugStrength.numeratorValue is null then
+                        Quantity{
+                          value: 1,
+                          unit:  if drugStrength.amountUnitConcept.conceptCode = '[U]' then
+                                   '[IU]'
+                                 else
+                                   drugStrength.amountUnitConcept.conceptCode
+                        }
+                      else
+                        convert drugStrength to Quantity,
         quantityInIU: "Insulin Amount in IU"(quantity)
       return
       if quantityInIU is null then

@@ -179,3 +179,25 @@ define "Visit Results":
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")
+
+
+define "Debug Results":
+  Flatten(
+    (T."Visits with 24-hour Periods") visitWithPeriods
+      let visitInterval: visitWithPeriods.visit
+        return all (visitWithPeriods.overlappingPeriods) period
+          let painAssessmentCount:      Count("Pain Assessment Measurements" m
+                                          where convert m to DateTime during period),
+              sedationAssessmentCount:  Count("Sedation Assessment Measurements" m
+                                          where convert m to DateTime during period),
+              deliriumAssessmentCount:  Count("Delirium Assessment Measurements" m
+                                          where convert m to DateTime during period)
+          return all {
+                       period: period,
+                       values: {
+                                 painAssessmentCount     * 1.0, // force Decimal
+                                 sedationAssessmentCount * 1.0,
+                                 deliriumAssessmentCount * 1.0
+                               }
+                     }
+  )

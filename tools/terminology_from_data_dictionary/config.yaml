@@ -7,6 +7,51 @@ mappings:
     category:    Medications
     subcategory: "Anticoagulants"
 
+  - name:         3DCAM
+    concept_sets: [1]
+
+  - name:         4AsTest
+    concept_sets: [2]
+
+  - name:         BehaviorPainScale
+    concept_sets: [3]
+
+  - name:         CAMICU
+    concept_sets: [4]
+
+  - name:         DeliriumDetectionScore
+    concept_sets: [5]
+
+  - name:         DeliriumObservationScreening
+    concept_sets: [6]
+
+  - name:         DeliriumRatingScaleRevisse98
+    concept_sets: [7]
+
+  - name:         ICDSC
+    concept_sets: [9]
+
+  - name:         NumericPainRatingScale
+    concept_sets: [10]
+
+  - name:         NursingDeliriumScreeningScale
+    concept_sets: [11]
+
+  - name:         RamsaySedationScale
+    concept_sets: [13]
+
+  - name:         RichmondAgitatinoSedationScale
+    concept_sets: [14]
+
+  - name:         VisualAnalogPainScale
+    concept_sets: [15]
+
+  - name:         CatheterInfection
+    concept_sets: [31]
+
+  - name:         VentilaorAssociatedPneumonia
+    concept_sets: [32]
+
   - name:         GlucoseMeasurements
     concept_sets: [207]
     exclude:
@@ -49,22 +94,55 @@ mappings:
     concept_sets: [274]
 
   - name:         BodyWeight
-    concept_sets: [ 275 ]
+    concept_sets: [275]
 
   - name:         IdealBodyWeight
-    concept_sets: [ 284 ]
+    concept_sets: [284]
 
   - name:         ContraindicationToEnteralFeeding
-    concept_sets: [ 285 ]
+    concept_sets: [285]
 
   - name:         EnergyIntake
-    concept_sets: [ 286 ]
+    concept_sets: [286]
 
   - name:         EnergyRequirement
-    concept_sets: [ 287 ]
+    concept_sets: [287]
+
+  - name:         AdvanceCarePlanAgreed
+    concept_sets: [288]
+
+  - name:         ConsultationWithPatient
+    concept_sets: [289]
+    include:
+      - concept_id: 4247376
+        name:       Discussion about care plan with family
+    exclude:
+      - concept_id: 37208165
+        name:       Consultation for suicide risk management
+      - concept_id: 4211804
+        name:       Consultation for unaccompanied minor
+      - concept_id: 1450350
+        name:       Group face to face consultation
+      - concept_id: 764768
+        name:       Pharmacokinetic consultation
+      - concept_id: 764769
+        name:       Risk evaluation and mitigation strategy consultation
+      - concept_id: 4027135
+        name:       Subsequent hospital visit by physician
+      - concept_id: 40489429
+        name:       Telemedicine consultation with patient
+
+  - name:         SurrogateDecisionMakerDocumented
+    concept_sets: [290]
+
+  - name:         CentralVenousCatheter
+    concept_sets: [291]
 
   - name:         MobilizationProcedures
     concept_sets: [294]
+
+  - name:         OrderNotToMobilize
+    concept_sets: [295]
 
   - name:         RenalReplacementTherapyProcedures
     concept_sets: [298]
@@ -93,3 +171,12 @@ mappings:
   # mL/kg.
   - name:         TidalVolumeMeasurements
     concept_sets: [322]
+
+  - name:         DecisionAuthorityDocumented
+    concept_sets: [342]
+    include:
+      - concept_id: 45877806
+        name:       Decision authority documented
+    exclude:
+      - concept_id: 1032192
+        name:       Decision authority documented

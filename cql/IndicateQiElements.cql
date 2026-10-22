@@ -252,7 +252,7 @@ define function "Measurements with Neighbors"(measurements List<Measurement>):
 
 define function "Period Result"(period                Interval<DateTime>,
                                 isInInitialPopulation Boolean,
-                                numerator             Integer,
+                                numerator             Decimal,
                                 denominator           Integer):
   {
     period:      period,
@@ -267,7 +267,7 @@ define function "Period Result"(period                Interval<DateTime>,
 define function "Overall Result"(
   patient              Person,
   periodResultsByVisit List<List<Tuple{period      Interval<DateTime>,
-                                       numerator   Integer,
+                                       numerator   Decimal,
                                        denominator Integer,
                                        qi          Decimal}>>
 ):

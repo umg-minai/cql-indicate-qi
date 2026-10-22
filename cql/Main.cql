@@ -23,7 +23,7 @@ define function ToObservation(
                          reviewPeriod Interval<DateTime>,
                          periods      List<Tuple{
                                         period      Interval<DateTime>,
-                                        numerator   Integer,
+                                        numerator   Decimal,
                                         denominator Integer,
                                         qi          Decimal
                                       }>

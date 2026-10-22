@@ -218,3 +218,27 @@ define "Visit Results":
                    )
 
 define Result: elm."Overall Result"(Patient, "Visit Results")
+
+define "Debug Results":
+  Flatten(
+    (T."Visits with 24-hour Periods") visitWithPeriods
+      let visitInterval: visitWithPeriods.visit
+        return all (visitWithPeriods.overlappingPeriods) period
+          let cvcExposureCount: Count("CVC Device Exposures" d
+                                        where convert d to Interval<DateTime> overlaps period),
+              crbiCount:        Count("Catheter-related Bloodstream Infection Conditions" c
+                                        where convert c to Interval<DateTime> overlaps period),
+              ventilationCount: Count("Ventilation Procedures" p
+                                        where convert p to Interval<DateTime> overlaps period),
+              vapCount:         Count("Ventilator associated Pneumonia Conditions" c
+                                        where convert c to Interval<DateTime> overlaps period)
+          return all {
+                       period: period,
+                       values: {
+                                 cvcExposureCount * 1.0, // force Decimal
+                                 crbiCount        * 1.0,
+                                 ventilationCount * 1.0,
+                                 vapCount         * 1.0
+                               }
+                     }
+  )

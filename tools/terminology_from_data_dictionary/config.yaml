@@ -48,8 +48,20 @@ mappings:
   - name:         BodyHeight
     concept_sets: [274]
 
+  - name:         BodyWeight
+    concept_sets: [ 275 ]
+
   - name:         IdealBodyWeight
-    concept_sets: [284]
+    concept_sets: [ 284 ]
+
+  - name:         ContraindicationToEnteralFeeding
+    concept_sets: [ 285 ]
+
+  - name:         EnergyIntake
+    concept_sets: [ 286 ]
+
+  - name:         EnergyRequirement
+    concept_sets: [ 287 ]
 
   - name:         MobilizationProcedures
     concept_sets: [294]
@@ -68,6 +80,9 @@ mappings:
 
   - name:         TrialOfSpontaneousBreathing
     concept_sets: [309]
+
+  - name:         CarbonDioxideProduction
+    concept_sets: [311]
 
   - name:         PEEPMeasurements
     concept_sets: [318]

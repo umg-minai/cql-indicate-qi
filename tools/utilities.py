@@ -1,3 +1,9 @@
+# General utilities
+
+
+def maybe_truncate(string: str, max_length: int = 80):
+    return string if len(string) <= max_length else string[:max_length - 1] + '…'
+
 # Athena links
 
 ATHENA_URL = "https://athena.ohdsi.org"
@@ -8,9 +14,7 @@ def make_athena_url(concept_id):
 
 
 def format_concept_for_terminal(concept_id, concept_name, max_width=80):
-    label = concept_name or '«no name»'
-    if len(label) > max_width:
-        label = label[:max_width] + '…'
+    label = maybe_truncate(concept_name or '«no name»', max_length=max_width)
     url = make_athena_url(concept_id)
     if url:
         return f"\033]8;;{url}\033\\{label} ({concept_id})\033]8;;\033\\"

@@ -4,21 +4,30 @@ from pathlib import Path
 from typing import Dict, List
 
 from terminology_from_data_dictionary.model import Output
-from utilities import make_concept_set_url, make_athena_url
+from utilities import make_concept_set_url, make_athena_url, maybe_truncate
 
 
-def maybe_truncate(string, max_length=40):
-    return string if len(string) <= max_length else string[:max_length - 1] + "…"
+def naive_markdown_escape(string: str):
+    return string.replace("[", "\\[").replace("]", "\\]")
 
 
 def format_markdown_link(title: str, url: str):
-    return f"[{title}]({url})"
+    return f"[{naive_markdown_escape(title)}]({url})"
 
 
 def format_concept_id_for_markdown(concept_id: int):
     label = str(concept_id)
     url = make_athena_url(concept_id)
     return format_markdown_link(label, url) if url else label
+
+
+def format_concept_set_for_markdown(concept_set_id: int, concept_set_name: str, concept_set_version: str, max_width = 80):
+    id_string = str(concept_set_id)
+    label = (maybe_truncate(concept_set_name, max_length=max_width - (len(id_string) + 3))
+             + f" ({id_string})")
+    url  = make_concept_set_url(concept_set_id)
+    link = format_markdown_link(label, url)
+    return f"{link} v{concept_set_version}"
 
 
 def format_markdown_table(outputs: List[Output]):
@@ -40,13 +49,14 @@ def format_markdown_table(outputs: List[Output]):
         for concept in sorted(output.concepts, key=lambda x: x.name.lower()):
             concept_set = concept.concept_set
             if concept_set:
-                concept_set_cell = (format_markdown_link(f"{concept_set.name} ({str(concept_set.concept_set_id)})",
-                                                        make_concept_set_url(concept_set.concept_set_id))
-                                    + f" v{concept_set.concept_set.get("version")}")
+                concept_set_cell = format_concept_set_for_markdown(concept_set.concept_set_id,
+                                                                   concept_set.name,
+                                                                   concept_set.concept_set.get("version"),
+                                                                   max_width=40)
             else:
                 concept_set_cell = "Added by UMG"
             add_row(format_concept_id_for_markdown(concept.concept_id),
-                    maybe_truncate(concept.name),
+                    naive_markdown_escape(maybe_truncate(concept.name, max_length=40)),
                     "yes" if concept.descendants else "no",
                     concept_set_cell)
 
@@ -71,7 +81,7 @@ def update_markdown_file(outputs: Dict[str, Output], markdown_file: Path):
     match_count = 0
     while True:
         key, match = None, None
-        for maybe_match in re.finditer("<!-- inject:([a-zA-Z,]+) -->\n(\\|[^\n]*\n)*", text, re.MULTILINE):
+        for maybe_match in re.finditer("<!-- inject:([a-zA-Z0-9,]+) -->\n(\\|[^\n]*\n)*", text, re.MULTILINE):
             maybe_key = maybe_match.group(1)
             if maybe_key in done:
                 continue

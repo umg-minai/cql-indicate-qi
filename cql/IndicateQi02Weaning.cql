@@ -90,7 +90,7 @@ define function "Mechanical Ventilation Intervals for Visit"(visitInterval Inter
   // presence of an intubation tube and simultaneous ventilation.
   collapse(
     I.IntersectIntervals(
-      "Ventilation Procedures" p
+      "Ventilation Procedures" p // TODO(moringenj): why not use "Ventilation Periods"?
         let procedureInterval: convert p to Interval<DateTime>
           where procedureInterval overlaps visitInterval
           return all procedureInterval,
@@ -102,6 +102,7 @@ define function "Mechanical Ventilation Intervals for Visit"(visitInterval Inter
   )
 
 define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateTime>):
+  // TODO(moringenj): cache the conversions to Interval and DateTime
      Exists("Trial of Spontaneous Breathing Procedures" p
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Extubation Procedures" p

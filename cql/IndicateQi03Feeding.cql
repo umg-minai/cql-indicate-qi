@@ -14,10 +14,12 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 include OMOPFunctions
+
 include LocalTimeGermany called L
 include TimePeriods called T
 include IndicateQiElements called elm
 include IndicateQiUtilities called U
+
 include InsulinDrugs
 include InsulinIngredients
 include InsulinStrength
@@ -84,8 +86,12 @@ define "Phosphate Measurements":
     sort by measurementDatetime desc
 
 define "Insulin Exposures":
-        [DrugExposure: InsulinDrugs."Insulin Drugs"]
-  union [DrugExposure: InsulinIngredients."Insulin Ingredients"]
+        ([DrugExposure: InsulinDrugs."Insulin Drugs"] d
+           where U.CheckDateTimeInterval(d)
+           return all d)
+  union ([DrugExposure: InsulinIngredients."Insulin Ingredients"] d
+           where U.CheckDateTimeInterval(d)
+           return all d)
 
 define "Energy Requirement Observations":
   [Observation: "Estimated required quantity of energy in 24 hours"] o
@@ -116,8 +122,12 @@ define "Calorie Intake Measurements":
 
 define "Renal Replacement Therapy Procedures":
   Flatten({
-    [ProcedureOccurrence: "Continuous Renal Replacement Therapy"],
-    [ProcedureOccurrence: "Other Renal Replacement Therapy"]
+    ([ProcedureOccurrence: "Continuous Renal Replacement Therapy"] p
+       where U.CheckDateTimeInterval(p)
+       return all p),
+    ([ProcedureOccurrence: "Other Renal Replacement Therapy"] p
+       where U.CheckDateTimeInterval(p)
+       return all p)
   })
 
 define function "Last Phosphate Measurement in Period"(period Interval<DateTime>):

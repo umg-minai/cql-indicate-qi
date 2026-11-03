@@ -401,11 +401,17 @@ define function "Calorie Target for 24-hour Period"(previousTarget Quantity,
 
                                   else // NOTE(moringenj): should be unreachable
                                     U.SignalProblemWithValue(
-                                            'No matching case; insulin '
-                                            + ToString(previousInsulin) +
-                                            ' previous target '
-                                            + ToString(previousTarget),
-                                            null)
+                                      'No matching case; previousInsulin '
+                                      + (if previousInsulin is not null then
+                                           ToString(previousInsulin)
+                                         else
+                                           'null')
+                                      + ' previousTarget '
+                                      + (if previousTarget is not null then
+                                           ToString(previousTarget)
+                                         else
+                                           'null'),
+                                      null)
                                 end
         // Clamp calorie target to [0, Initial Calorie Target]; the
         // value could be outside of this range due to the unchecked

@@ -22,8 +22,9 @@ include TimePeriods called T
 include IndicateQiUtilities called U
 include IndicateQiElements called elm
 
-include VentilationProcedures
 include TidalVolumeMeasurements
+
+code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
 code "ARDS Condition": '4195694' from elm.OMOPSV // ICD10 based code: '45552897'
 
@@ -85,15 +86,6 @@ concept "Plateau Pressure Measurement": {
   "Pressure.plateau Respiratory system airway --on ventilator"
 }
 
-// Unit: usually cmH2O but may be some other pressure unit.  Converted to
-// cm[H2O] in "Peak Inspiratory Pressure Measurements".
-code "Inspiratory Pressure Setting": '4215838' from elm.OMOPSV
-
-// Unit: usually mmHg (different for CAVE).  Has to be converted to
-// unit cmH2O. Converted to cm[H2O] in "Peak Inspiratory Pressure
-// Measurements".
-code "Peak Inspiratory Pressure Measurement": '4101694' from elm.OMOPSV
-
 // PEEP Tables
 
 define function "Low PEEP for FiO2"(FiO2 Quantity):
@@ -152,31 +144,8 @@ define "Plateau Pressure Measurements":
     return all m
     sort by measurementDatetime desc
 
-// Merge data from the measurement and observation domains by
-// converting to Quantity.  Sort in descending order for LOCF logic.
-// Convert to cm[H2O].
-define "Peak Inspiratory Pressure Measurements":
-  (Flatten({
-     ([Measurement: "Peak Inspiratory Pressure Measurement"] m
-        return all {
-          datetime: convert m to DateTime,
-          // TODO(moringenj): use an error-checking conversion
-          quantity: convert (convert m to Quantity) to 'cm[H2O]'
-        }
-     ),
-     ([Observation: "Inspiratory Pressure Setting"] o
-        return all {
-          datetime: convert o to DateTime,
-          // TODO(moringenj): use an error-checking conversion
-          quantity: convert (convert o to Quantity) to 'cm[H2O]'
-        }
-     )
-   })) q
-    return all q
-    sort by datetime desc
-
 define "Ventilation Procedures":
-  [ProcedureOccurrence: VentilationProcedures."PCV or VCV Ventilation Procedure"] p
+  [ProcedureOccurrence: "Invasive Ventilation Procedure"] p
     where U.CheckDateTimeInterval(p)
     return all p
 
@@ -248,25 +217,6 @@ define function "Plateau Pressure Measurement LOCF"(targetTime DateTime):
                 )
           return all m)
 
-define function "Peak Inspiratory Pressure LOCF"(targetTime DateTime):
-  First("Peak Inspiratory Pressure Measurements" m
-          where "Same or Before with Minute Precision"(m.datetime, targetTime)
-          return all m.quantity)
-
-define function "Ventilation Mode"(targetTime DateTime):
-  (1) _
-    let procedure: First("Ventilation Procedures" p
-                           where targetTime during (convert p to Interval<DateTime>)
-                           return all p)
-      return case
-               when procedure.procedureConcept ~ VentilationProcedures."Pressure Driven Ventilation Procedure"
-                 then 'Pressure Driven'
-               when procedure.procedureConcept ~ VentilationProcedures."Volume Driven Ventilation Procedure"
-                 then 'Volume Driven'
-               else
-                 null
-             end
-
 define "Usable Tidal Volume Measurements":
   // Select Tidal Volume measurements according to the "Tidal volume (Vt)"
   // (322) concept set. All concept in that concept use the unit mL for the
@@ -337,14 +287,19 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
                                  ]
 
 define function "Effective Plateau Pressure"(peepTime DateTime):
+  // This used to select either "Plateau Pressure Measurement LOCF" if
+  // available for peepTime or "Peak Inspiratory Pressure LOCF" for peepTime
+  // if available and "Ventilation Mode" for peepTime was 'Pressure Driven'.
+  // Since determining the ventilation mode proved too unreliable, the fallback
+  // to "Peak Inspiratory Pressure LOCF" is no longer attempted.
   (1) _
-    let ventilationMode:            "Ventilation Mode"(peepTime),
-        plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepTime)
-      return if     plateauPressureMeasurement is null
-                and ventilationMode = 'Pressure Driven' then
-               "Peak Inspiratory Pressure LOCF"(peepTime)
+    let plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepTime)
+      return if plateauPressureMeasurement is not null then
+               U.EnsureQuantityWithUnit('Plateau pressure measurement',
+                                        plateauPressureMeasurement,
+                                        'cm[H2O]')
              else
-               plateauPressureMeasurement
+               null
 
 define function "Is Conforming PEEP"(peepMeasurement Measurement):
   (1) _

@@ -55,19 +55,19 @@ concept "FiO2 Measurement": {
   "Oxygen/Total gas setting [Volume Fraction] Ventilator"
 }
 
-code "PEEP Total, Measured Measurement":                    '42527140' from elm.OMOPSV // LOINC   measurement
+code "Total PEEP Respiratory system":                       '42527140' from elm.OMOPSV // LOINC   measurement
 code "Positive end expiratory pressure setting Ventilator": '3022875'  from elm.OMOPSV // LOINC   measurement
-code "PEEP Setting Measurement":                            '4216746'  from elm.OMOPSV // SNOMED  observation
-code "PEEP General Measurement":                            '4353713'  from elm.OMOPSV // SNOMED  observation
+code "Positive end expiratory pressure setting":            '4216746'  from elm.OMOPSV // SNOMED  observation
+code "Positive end expiratory pressure":                    '4353713'  from elm.OMOPSV // SNOMED  observation
 
 concept "PEEP Measurement": {
-  "PEEP Total, Measured Measurement",
+  "Total PEEP Respiratory system",
   "Positive end expiratory pressure setting Ventilator"
 }
 
 concept "PEEP Observation": {
-  "PEEP Setting Measurement",
-  "PEEP General Measurement"
+  "Positive end expiratory pressure setting",
+  "Positive end expiratory pressure"
 }
 
 code "Airway plateau pressure":                                                             '44782825' from elm.OMOPSV

@@ -139,6 +139,75 @@ define "PEEP Measurements":
     return all m
     sort by measurementDatetime
 
+define "PEEP Observations":
+  [Observation: "PEEP Observation"] o
+    return all o
+    sort by observationDatetime
+
+define "Ordered PEEP Data":
+  (Flatten({
+    "PEEP Measurements" m
+      return all { concept:  m.measurementConcept,
+                   datetime: convert m to DateTime,
+                   quantity: convert m to Quantity },
+    "PEEP Observations" o
+      return all { concept:  o.observationConcept,
+                   datetime: convert o to DateTime,
+                   quantity: convert o to Quantity }
+  })) d
+    return all d
+    sort by datetime
+
+define function "PEEP Concept Priority"(omopConcept OMOP.Concept):
+  // Preference order for different kinds of PEEP measurements and
+  // observations, concepts with lower number are preferred over concepts with
+  // higher numbers.
+  (1) _
+    let systemCode: convert omopConcept to System.Code
+      return case systemCode
+               when "Total PEEP Respiratory system"                       then 1
+               when "Positive end expiratory pressure setting"            then 2
+               when "Positive end expiratory pressure"                    then 3
+               when "Positive end expiratory pressure setting Ventilator" then 4
+               else                                                            null
+             end
+
+define "PEEP Data":
+  // Iterate through "Ordered PEEP Data" which is ordered according to
+  // measurement/observation time and identify items with identical times. For
+  // those, keep only the item with the lower priority number.
+  (1) _
+    let result: ("Ordered PEEP Data") d aggregate r
+                     starting ({ previous: null,
+                                 result:   {} }
+                               as Tuple{previous Tuple{concept  OMOP.Concept,
+                                                       datetime DateTime,
+                                                       quantity Quantity},
+                                        result   List<Tuple{concept  OMOP.Concept,
+                                                            datetime DateTime,
+                                                            quantity Quantity}>}):
+                  case
+                    // Data items generated at different times or no previous
+                    // data item.
+                    when    r.previous is null
+                         or not (r.previous.datetime = d.datetime) then
+                      { previous: d, result: Flatten({ r.result, {r.previous } }) }
+                    // "New" item has lower priority number -> use "new" item
+                    // by replacing old item.
+                    when   "PEEP Concept Priority"(d.concept)
+                         < "PEEP Concept Priority"(r.previous.concept) then
+                      { previous: d, result: r.result }
+                    // "Old" item has lower (or equal) priority number -> use
+                    // "old" item by ignoring new item.
+                    else
+                      r
+                  end
+      // Flush final tentative item, if any, into result list.
+      return if result.previous is not null then
+               Flatten({ result.result, { result.previous } })
+             else
+               result.result
+
 define "Plateau Pressure Measurements":
   [Measurement: "Plateau Pressure Measurement"] m
     return all m
@@ -301,10 +370,12 @@ define function "Effective Plateau Pressure"(peepTime DateTime):
              else
                null
 
-define function "Is Conforming PEEP"(peepMeasurement Measurement):
+define function "Is Conforming PEEP"(peepMeasurement Tuple{concept  OMOP.Concept,
+                                                           datetime DateTime,
+                                                           quantity Quantity}):
   (1) _
-    let peepQuantity:       convert peepMeasurement to Quantity,
-        peepTime:           convert peepMeasurement to DateTime,
+    let peepQuantity:       peepMeasurement.quantity,
+        peepTime:           peepMeasurement.datetime,
         tidalVolume:        "Tidal Volume LOCF"(peepTime),
         plateauPressure:    "Effective Plateau Pressure"(peepTime),
         pressureDifference: plateauPressure - peepQuantity,
@@ -337,12 +408,12 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
-        measurementsInVisit:         ("PEEP Measurements") m
-                                       where m in visitInterval
-                                       return all m
+        measurementsInVisit:         ("PEEP Data") d
+                                       where d.datetime in visitInterval
+                                       return all d
       return all (visitWithPeriods.fullyContainedPeriods) period
                    let measurementsInPeriod: (measurementsInVisit) m
-                                               where m in period
+                                               where m.datetime in period
                                                return all m,
                        goodMeasurements:     (measurementsInPeriod) m
                                                where "Is Conforming PEEP"(m)

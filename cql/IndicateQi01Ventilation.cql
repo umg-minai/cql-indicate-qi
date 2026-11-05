@@ -54,12 +54,15 @@ concept "FiO2 Measurement": {
   "Oxygen/Total gas setting [Volume Fraction] Ventilator"
 }
 
-code "PEEP Total, Measured Measurement": '42527140' from elm.OMOPSV
-code "PEEP Setting Measurement":         '4216746'  from elm.OMOPSV
-code "PEEP General Measurement":         '4353713'  from elm.OMOPSV
+code "PEEP Total, Measured Measurement": '42527140' from elm.OMOPSV // LOINC   measurement
+code "PEEP Setting Measurement":         '4216746'  from elm.OMOPSV // SNOMED  observation
+code "PEEP General Measurement":         '4353713'  from elm.OMOPSV // SNOMED  observation
 
 concept "PEEP Measurement": {
-  "PEEP Total, Measured Measurement",
+  "PEEP Total, Measured Measurement"
+}
+
+concept "PEEP Observation": {
   "PEEP Setting Measurement",
   "PEEP General Measurement"
 }

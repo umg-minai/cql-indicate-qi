@@ -317,9 +317,6 @@ define function "Is Conforming PEEP"(peepMeasurement Measurement):
              and plateauPressure <= 30 'cm[H2O]'
              and pressureDifference <= 14 'cm[H2O]'
 
-define "Conforming PEEP Measurements":
-  ("PEEP Measurements") p where "Is Conforming PEEP"(p) return all p
-
 // Quality Indicator
 
 // TODO(moringenj): We require that all conditions are fulfilled within a visit.

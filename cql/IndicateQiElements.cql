@@ -39,20 +39,29 @@ code "Gender Female": '8532' from OMOPSV
 code "Gender Male":   '8507' from OMOPSV
 
 define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
+  // The Devine formula is applicable to adults of at least 152.4 cm
+  // (60 inches) body height. For smaller body heights, the result is
+  // meaningless or, in cases below around 100 cm, becomes negative and
+  // disrupts subsequent calculations.
   (1) _
     let heightInCM: U.EnsureQuantityWithUnit('Body height', Height, 'cm'),
         heightPart: 0.91 * (heightInCM - 152.4 'cm').value
-      return Quantity{
-               value: case
-                        when Gender ~ "Gender Female" then
-                          45.5 + heightPart
-                        when Gender ~ "Gender Male" then
-                          50 + heightPart
-                        else
-                          47.75 + heightPart
-                      end,
-               unit: 'kg'
-             }
+      return if heightInCM < 152.4 'cm' then
+               U.SignalProblem('In IBW calculation, Devine formula is not'
+                               + ' applicable to body height of '
+                               + ToString(heightInCM))
+             else
+               Quantity{
+                 value: case
+                          when Gender ~ "Gender Female" then
+                            45.5 + heightPart
+                          when Gender ~ "Gender Male" then
+                            50 + heightPart
+                          else
+                            47.75 + heightPart
+                        end,
+                 unit: 'kg'
+               }
 
 context Patient
 

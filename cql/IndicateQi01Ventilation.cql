@@ -147,13 +147,17 @@ define "PEEP Observations":
 define "Ordered PEEP Data":
   (Flatten({
     "PEEP Measurements" m
-      return all { concept:  m.measurementConcept,
-                   datetime: convert m to DateTime,
-                   quantity: convert m to Quantity },
+      let quantity: U.EnsureQuantityWithUnit('PEEP Measurement', m, 'cm[H2O]')
+        where quantity is not null
+        return all { concept:  m.measurementConcept,
+                     datetime: convert m to DateTime,
+                     quantity: quantity },
     "PEEP Observations" o
-      return all { concept:  o.observationConcept,
-                   datetime: convert o to DateTime,
-                   quantity: convert o to Quantity }
+      let quantity: U.EnsureQuantityWithUnit('PEEP Observation', o, 'cm[H2O]')
+        where quantity is not null
+        return all { concept:  o.observationConcept,
+                     datetime: convert o to DateTime,
+                     quantity: quantity }
   })) d
     return all d
     sort by datetime
@@ -339,8 +343,10 @@ define function "Recommended PEEP for PaO2"(peepTime DateTime):
 
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
+    // No need to use an error-checking conversion for tidalVolume since
+    // "Usable Tidal Volume Measurements" has already checked everything,
+    // including the conversion to mL.
     let tidalVolumeQuantity:  convert tidalVolume to Quantity,
-        // TODO(moringenj): use an error-checking conversion
         tidalVolumeValue:     (convert tidalVolumeQuantity to 'mL').value,
         tidalVolumeTime:      convert tidalVolume to DateTime,
         // The function returns the ideal body weight converted/scaled to kg/m

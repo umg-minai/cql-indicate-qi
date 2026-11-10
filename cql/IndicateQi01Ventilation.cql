@@ -22,8 +22,9 @@ include TimePeriods called T
 include IndicateQiUtilities called U
 include IndicateQiElements called elm
 
-include VentilationProcedures
 include TidalVolumeMeasurements
+
+code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
 code "ARDS Condition": '4195694' from elm.OMOPSV // ICD10 based code: '45552897'
 
@@ -54,29 +55,36 @@ concept "FiO2 Measurement": {
   "Oxygen/Total gas setting [Volume Fraction] Ventilator"
 }
 
-code "PEEP Total, Measured Measurement": '42527140' from elm.OMOPSV // LOINC   measurement
-code "PEEP Setting Measurement":         '4216746'  from elm.OMOPSV // SNOMED  observation
-code "PEEP General Measurement":         '4353713'  from elm.OMOPSV // SNOMED  observation
+code "Total PEEP Respiratory system":                       '42527140' from elm.OMOPSV // LOINC   measurement
+code "Positive end expiratory pressure setting Ventilator": '3022875'  from elm.OMOPSV // LOINC   measurement
+code "Positive end expiratory pressure setting":            '4216746'  from elm.OMOPSV // SNOMED  observation
+code "Positive end expiratory pressure":                    '4353713'  from elm.OMOPSV // SNOMED  observation
 
 concept "PEEP Measurement": {
-  "PEEP Total, Measured Measurement"
+  "Total PEEP Respiratory system",
+  "Positive end expiratory pressure setting Ventilator"
 }
 
 concept "PEEP Observation": {
-  "PEEP Setting Measurement",
-  "PEEP General Measurement"
+  "Positive end expiratory pressure setting",
+  "Positive end expiratory pressure"
 }
 
-code "Plateau Pressure Measurement": '44782825' from elm.OMOPSV
+code "Airway plateau pressure":                                                             '44782825' from elm.OMOPSV
+code "Airway pressure --at zero inspiratory flow on ventilator":                            '3006369' from elm.OMOPSV
+code "Airway pressure by Airway pressure monitor --at zero inspiratory flow on ventilator": '3012810' from elm.OMOPSV
+code "Dynamic plateau pressure":                                                            '21490565' from elm.OMOPSV
+code "Pressure.plateau Respiratory system airway":                                          '36304439' from elm.OMOPSV
+code "Pressure.plateau Respiratory system airway --on ventilator":                          '36303946' from elm.OMOPSV
 
-// Unit: usually cmH2O but may be some other pressure unit.  Converted to
-// cm[H2O] in "Peak Inspiratory Pressure Measurements".
-code "Inspiratory Pressure Setting": '4215838' from elm.OMOPSV
-
-// Unit: usually mmHg (different for CAVE).  Has to be converted to
-// unit cmH2O. Converted to cm[H2O] in "Peak Inspiratory Pressure
-// Measurements".
-code "Peak Inspiratory Pressure Measurement": '4101694' from elm.OMOPSV
+concept "Plateau Pressure Measurement": {
+  "Airway plateau pressure",
+  "Airway pressure --at zero inspiratory flow on ventilator",
+  "Airway pressure by Airway pressure monitor --at zero inspiratory flow on ventilator",
+  "Dynamic plateau pressure",
+  "Pressure.plateau Respiratory system airway",
+  "Pressure.plateau Respiratory system airway --on ventilator"
+}
 
 // PEEP Tables
 
@@ -131,36 +139,86 @@ define "PEEP Measurements":
     return all m
     sort by measurementDatetime
 
+define "PEEP Observations":
+  [Observation: "PEEP Observation"] o
+    return all o
+    sort by observationDatetime
+
+define "Ordered PEEP Data":
+  (Flatten({
+    "PEEP Measurements" m
+      let quantity: U.EnsureQuantityWithUnit('PEEP Measurement', m, 'cm[H2O]')
+        where quantity is not null
+        return all { concept:  m.measurementConcept,
+                     datetime: convert m to DateTime,
+                     quantity: quantity },
+    "PEEP Observations" o
+      let quantity: U.EnsureQuantityWithUnit('PEEP Observation', o, 'cm[H2O]')
+        where quantity is not null
+        return all { concept:  o.observationConcept,
+                     datetime: convert o to DateTime,
+                     quantity: quantity }
+  })) d
+    return all d
+    sort by datetime
+
+define function "PEEP Concept Priority"(omopConcept OMOP.Concept):
+  // Preference order for different kinds of PEEP measurements and
+  // observations, concepts with lower number are preferred over concepts with
+  // higher numbers.
+  (1) _
+    let systemCode: convert omopConcept to System.Code
+      return case systemCode
+               when "Total PEEP Respiratory system"                       then 1
+               when "Positive end expiratory pressure setting"            then 2
+               when "Positive end expiratory pressure"                    then 3
+               when "Positive end expiratory pressure setting Ventilator" then 4
+               else                                                            null
+             end
+
+define "PEEP Data":
+  // Iterate through "Ordered PEEP Data" which is ordered according to
+  // measurement/observation time and identify items with identical times. For
+  // those, keep only the item with the lower priority number.
+  (1) _
+    let result: ("Ordered PEEP Data") d aggregate r
+                     starting ({ previous: null,
+                                 result:   {} }
+                               as Tuple{previous Tuple{concept  OMOP.Concept,
+                                                       datetime DateTime,
+                                                       quantity Quantity},
+                                        result   List<Tuple{concept  OMOP.Concept,
+                                                            datetime DateTime,
+                                                            quantity Quantity}>}):
+                  case
+                    // Data items generated at different times or no previous
+                    // data item.
+                    when    r.previous is null
+                         or not (r.previous.datetime = d.datetime) then
+                      { previous: d, result: Flatten({ r.result, {r.previous } }) }
+                    // "New" item has lower priority number -> use "new" item
+                    // by replacing old item.
+                    when   "PEEP Concept Priority"(d.concept)
+                         < "PEEP Concept Priority"(r.previous.concept) then
+                      { previous: d, result: r.result }
+                    // "Old" item has lower (or equal) priority number -> use
+                    // "old" item by ignoring new item.
+                    else
+                      r
+                  end
+      // Flush final tentative item, if any, into result list.
+      return if result.previous is not null then
+               Flatten({ result.result, { result.previous } })
+             else
+               result.result
+
 define "Plateau Pressure Measurements":
   [Measurement: "Plateau Pressure Measurement"] m
     return all m
     sort by measurementDatetime desc
 
-// Merge data from the measurement and observation domains by
-// converting to Quantity.  Sort in descending order for LOCF logic.
-// Convert to cm[H2O].
-define "Peak Inspiratory Pressure Measurements":
-  (Flatten({
-     ([Measurement: "Peak Inspiratory Pressure Measurement"] m
-        return all {
-          datetime: convert m to DateTime,
-          // TODO(moringenj): use an error-checking conversion
-          quantity: convert (convert m to Quantity) to 'cm[H2O]'
-        }
-     ),
-     ([Observation: "Inspiratory Pressure Setting"] o
-        return all {
-          datetime: convert o to DateTime,
-          // TODO(moringenj): use an error-checking conversion
-          quantity: convert (convert o to Quantity) to 'cm[H2O]'
-        }
-     )
-   })) q
-    return all q
-    sort by datetime desc
-
 define "Ventilation Procedures":
-  [ProcedureOccurrence: VentilationProcedures."PCV or VCV Ventilation Procedure"] p
+  [ProcedureOccurrence: "Invasive Ventilation Procedure"] p
     where U.CheckDateTimeInterval(p)
     return all p
 
@@ -232,25 +290,6 @@ define function "Plateau Pressure Measurement LOCF"(targetTime DateTime):
                 )
           return all m)
 
-define function "Peak Inspiratory Pressure LOCF"(targetTime DateTime):
-  First("Peak Inspiratory Pressure Measurements" m
-          where "Same or Before with Minute Precision"(m.datetime, targetTime)
-          return all m.quantity)
-
-define function "Ventilation Mode"(targetTime DateTime):
-  (1) _
-    let procedure: First("Ventilation Procedures" p
-                           where targetTime during (convert p to Interval<DateTime>)
-                           return all p)
-      return case
-               when procedure.procedureConcept ~ VentilationProcedures."Pressure Driven Ventilation Procedure"
-                 then 'Pressure Driven'
-               when procedure.procedureConcept ~ VentilationProcedures."Volume Driven Ventilation Procedure"
-                 then 'Volume Driven'
-               else
-                 null
-             end
-
 define "Usable Tidal Volume Measurements":
   // Select Tidal Volume measurements according to the "Tidal volume (Vt)"
   // (322) concept set. All concept in that concept use the unit mL for the
@@ -304,8 +343,10 @@ define function "Recommended PEEP for PaO2"(peepTime DateTime):
 
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
+    // No need to use an error-checking conversion for tidalVolume since
+    // "Usable Tidal Volume Measurements" has already checked everything,
+    // including the conversion to mL.
     let tidalVolumeQuantity:  convert tidalVolume to Quantity,
-        // TODO(moringenj): use an error-checking conversion
         tidalVolumeValue:     (convert tidalVolumeQuantity to 'mL').value,
         tidalVolumeTime:      convert tidalVolume to DateTime,
         // The function returns the ideal body weight converted/scaled to kg/m
@@ -321,19 +362,26 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
                                  ]
 
 define function "Effective Plateau Pressure"(peepTime DateTime):
+  // This used to select either "Plateau Pressure Measurement LOCF" if
+  // available for peepTime or "Peak Inspiratory Pressure LOCF" for peepTime
+  // if available and "Ventilation Mode" for peepTime was 'Pressure Driven'.
+  // Since determining the ventilation mode proved too unreliable, the fallback
+  // to "Peak Inspiratory Pressure LOCF" is no longer attempted.
   (1) _
-    let ventilationMode:            "Ventilation Mode"(peepTime),
-        plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepTime)
-      return if     plateauPressureMeasurement is null
-                and ventilationMode = 'Pressure Driven' then
-               "Peak Inspiratory Pressure LOCF"(peepTime)
+    let plateauPressureMeasurement: "Plateau Pressure Measurement LOCF"(peepTime)
+      return if plateauPressureMeasurement is not null then
+               U.EnsureQuantityWithUnit('Plateau pressure measurement',
+                                        plateauPressureMeasurement,
+                                        'cm[H2O]')
              else
-               plateauPressureMeasurement
+               null
 
-define function "Is Conforming PEEP"(peepMeasurement Measurement):
+define function "Is Conforming PEEP"(peepMeasurement Tuple{concept  OMOP.Concept,
+                                                           datetime DateTime,
+                                                           quantity Quantity}):
   (1) _
-    let peepQuantity:       convert peepMeasurement to Quantity,
-        peepTime:           convert peepMeasurement to DateTime,
+    let peepQuantity:       peepMeasurement.quantity,
+        peepTime:           peepMeasurement.datetime,
         tidalVolume:        "Tidal Volume LOCF"(peepTime),
         plateauPressure:    "Effective Plateau Pressure"(peepTime),
         pressureDifference: plateauPressure - peepQuantity,
@@ -345,9 +393,6 @@ define function "Is Conforming PEEP"(peepMeasurement Measurement):
                    false
              and plateauPressure <= 30 'cm[H2O]'
              and pressureDifference <= 14 'cm[H2O]'
-
-define "Conforming PEEP Measurements":
-  ("PEEP Measurements") p where "Is Conforming PEEP"(p) return all p
 
 // Quality Indicator
 
@@ -369,12 +414,12 @@ define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods
     let visitInterval:               visitWithPeriods.visit,
         inInitialPopulationForVisit: "Is in Initial Population"(visitInterval),
-        measurementsInVisit:         ("PEEP Measurements") m
-                                       where m in visitInterval
-                                       return all m
+        measurementsInVisit:         ("PEEP Data") d
+                                       where d.datetime in visitInterval
+                                       return all d
       return all (visitWithPeriods.fullyContainedPeriods) period
                    let measurementsInPeriod: (measurementsInVisit) m
-                                               where m in period
+                                               where m.datetime in period
                                                return all m,
                        goodMeasurements:     (measurementsInPeriod) m
                                                where "Is Conforming PEEP"(m)

@@ -95,7 +95,8 @@ define function "Most Recent Body Weight Measurement Before"(targetTime DateTime
           return all m)
 
 define "Ideal Body Weight Measurements":
-  [Measurement: "Ideal Body Weight"] m
+  [Measurement: "Ideal body weight"] m
+    where U.EnsureQuantityWithUnit('Ideal body weight', m, 'kg') is not null
     return all m
     sort by measurementDatetime desc
 
@@ -110,7 +111,7 @@ define function "Ideal Body Weight Measured or Computed Before"(targetTime DateT
         bodyHeight:      "Most Recent Body Height Measurement Before"(targetTime)
       return case
                when idealBodyWeight is not null then
-                 U.EnsureQuantity('Ideal body weight', idealBodyWeight)
+                 convert idealBodyWeight to Quantity
                when bodyHeight is not null then
                  "Ideal Body Weight for Height"(
                    U.EnsureQuantity('Body height', bodyHeight),

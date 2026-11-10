@@ -130,6 +130,7 @@ define "FiO2 Measurements":
 
 define "PaO2/FiO2 (Horowitz index) Measurements":
   [Measurement: "PaO2/FiO2 (Horowitz index) Measurement"] m
+    where U.EnsureQuantityWithUnit('Horowitz index', m, 'mm[Hg]') is not null
     return all m
     sort by measurementDatetime desc
 
@@ -334,12 +335,19 @@ define function "ARDS Condition in Period"(period Interval<DateTime>):
               where (convert c to Interval<DateTime>) overlaps period)
   or // In some datasets, ARDS is not represented explicitly as an
      // ConditionOccurrence. To support these datasets, apply a
-     // second criterion based on a clinical definition of ARDS.
+     // second criterion based on a clinical definition of ARDS. The
+     // computation of the second criterion can either use the Horowitz index
+     // directly or calculate it from PaO2 and FiO2 measurements.
      (1) _
-       let periodEnd:       end of period,
-           paO2Measurement: "PaO2 LOCF"(periodEnd)
+       let horowitzMeasurement: "PaO2/FiO2 LOCF"(end of period)
+         return if horowitzMeasurement is not null then
+                  (convert horowitzMeasurement to Quantity) < 200 'mm[Hg]'
+                else
+                  false
+  or (1) __
+       let paO2Measurement: "PaO2 LOCF"(end of period)
          return if paO2Measurement is not null then
-                  (1) __
+                  (1) ___
                     // Find a FiO2 measurement that precedes the
                     // selected PaO2 measurement. If there is one, make
                     // sure it is within 60 minutes of the PaO2

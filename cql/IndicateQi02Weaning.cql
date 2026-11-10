@@ -17,6 +17,8 @@ include TimePeriods called T
 include IndicateQiUtilities called U
 include IndicateQiElements called elm
 
+include IntubatedPeriods
+
 code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
 concept "Ventilation Procedure": {
@@ -45,12 +47,6 @@ code "Inadvertent Extubation Event": '4231838' from elm.OMOPSV
 
 context Patient
 
-define "Intubation Tube Exposures":
-  [DeviceExposure: elm."Intubation Tube"] e
-    let i: U.EnsureDateTimeInterval(e)
-      where i is not null and i overlaps elm."Review Period"
-      return all e
-
 define "Ventilation Procedures":
   [ProcedureOccurrence: "Ventilation Procedure"] p
     let i: U.EnsureDateTimeInterval(p)
@@ -62,13 +58,6 @@ define "Ventilation Periods":
 
 define "Trial of Spontaneous Breathing Procedures":
   [ProcedureOccurrence: "Trial of Spontaneous Breathing"] p
-    let i: U.EnsureDateTimeInterval(p)
-      where i is not null and i overlaps elm."Review Period"
-      return all p
-      sort by procedureDatetime
-
-define "Extubation Procedures":
-  [ProcedureOccurrence: "Extubation Procedure"] p
     let i: U.EnsureDateTimeInterval(p)
       where i is not null and i overlaps elm."Review Period"
       return all p
@@ -94,17 +83,21 @@ define function "Mechanical Ventilation Intervals for Visit"(visitInterval Inter
         let procedureInterval: convert p to Interval<DateTime>
           where procedureInterval overlaps visitInterval
           return all procedureInterval,
-      "Intubation Tube Exposures" e
-        let exposureInterval: convert e to Interval<DateTime>
-          where exposureInterval overlaps visitInterval
-          return all exposureInterval
+      I.UnionIntervals(
+        IntubatedPeriods."Intubated Periods via Device Exposure" i
+          where i overlaps visitInterval
+          return all i,
+        IntubatedPeriods."Intubated Periods via Procedure" intubationPeriod
+          where intubationPeriod overlaps visitInterval
+          return all intubationPeriod
+      )
     )
   )
 
 define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateTime>):
      Exists("Trial of Spontaneous Breathing Procedures" p
               where convert p to Interval<DateTime> overlaps period)
-  or Exists("Extubation Procedures" p
+  or Exists(IntubatedPeriods. "Extubation Procedures" p
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Inadvertent Extubation Events" e
               where convert e to DateTime during period)

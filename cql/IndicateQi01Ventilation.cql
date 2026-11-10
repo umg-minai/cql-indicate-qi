@@ -119,6 +119,7 @@ context Patient
 // Forward" (LOCF) logic below.
 define "PaO2 Measurements":
   [Measurement: "PaO2 Measurement"] m
+    where U.EnsureQuantityWithUnit('PaO2 measurement', m, 'mm[Hg]') is not null
     return all m
     sort by measurementDatetime desc
 
@@ -328,6 +329,35 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
 define function "Is mild ARDS"("PaO2/FiO2" Quantity):
   "PaO2/FiO2" > 200 'mm[Hg]'
 
+define function "ARDS Condition in Period"(period Interval<DateTime>):
+     Exists("ARDS Conditions" c
+              where (convert c to Interval<DateTime>) overlaps period)
+  or // In some datasets, ARDS is not represented explicitly as an
+     // ConditionOccurrence. To support these datasets, apply a
+     // second criterion based on a clinical definition of ARDS.
+     (1) _
+       let periodEnd:       end of period,
+           paO2Measurement: "PaO2 LOCF"(periodEnd)
+         return if paO2Measurement is not null then
+                  (1) __
+                    // Find a FiO2 measurement that precedes the
+                    // selected PaO2 measurement. If there is one, make
+                    // sure it is within 60 minutes of the PaO2
+                    // measurement. If both measurements are available,
+                    // compute the fallback criterion.
+                    let paO2Time:        convert paO2Measurement to DateTime,
+                        fiO2Measurement: "FiO2 LOCF"(paO2Time),
+                        fiO2Time:        convert fiO2Measurement to DateTime
+                      return if (duration in minutes between fiO2Time and paO2Time)
+                                < 60 then
+                               ((convert paO2Measurement to Quantity)
+                                / (convert fiO2Measurement to Quantity))
+                               < 200 'mm[Hg]'
+                             else
+                               false
+                else
+                  false
+
 define function "Recommended PEEP for PaO2"(peepTime DateTime):
   (1) _
     let FiO2:        "FiO2 LOCF"(peepTime),
@@ -401,9 +431,7 @@ define function "Is in Initial Population"(visitInterval Interval<DateTime>):
                    where i overlaps visitInterval)
        or Exists(IntubatedPeriods."Intubated Periods via Procedure" i
                    where i overlaps visitInterval))
-  and Exists("ARDS Conditions" c
-               where (convert c to Interval<DateTime>)
-                     overlaps visitInterval)
+  and "ARDS Condition in Period"(visitInterval)
   and AgeInYearsAt(start of visitInterval) >= 18
 
 define "Visit Results":

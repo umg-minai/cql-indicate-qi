@@ -223,11 +223,6 @@ define "Ventilation Procedures":
     where U.CheckDateTimeInterval(p)
     return all p
 
-define "Intubation Tube Exposures":
-  [DeviceExposure: elm."Intubation Tube"] e
-    where U.CheckDateTimeInterval(e)
-    return all e
-
 define "ARDS Conditions":
   [ConditionOccurrence: "ARDS Condition"] c
     where U.CheckDateTimeInterval(c)

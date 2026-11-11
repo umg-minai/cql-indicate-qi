@@ -31,18 +31,6 @@ concept "Trial of Spontaneous Breathing": {
   "Trial of Spontaneous Breathing Procedure"
 }
 
-code "Extubation of trachea":  '4148972' from elm.OMOPSV
-code "Removal of endotracheal tube": '4150627' from elm.OMOPSV
-code "Removal of tracheostomy tube": '4012607' from elm.OMOPSV
-code "Ventilating tube removal by another physician": '4195943' from elm.OMOPSV
-
-concept "Extubation Procedure": {
-  "Extubation of trachea",
-  "Removal of endotracheal tube",
-  "Removal of tracheostomy tube",
-  "Ventilating tube removal by another physician"
-}
-
 code "Inadvertent Extubation Event": '4231838' from elm.OMOPSV
 
 context Patient
@@ -97,7 +85,7 @@ define function "Mechanical Ventilation Intervals for Visit"(visitInterval Inter
 define function "Is Spontaneous Breathing Trial in Period"(period Interval<DateTime>):
      Exists("Trial of Spontaneous Breathing Procedures" p
               where convert p to Interval<DateTime> overlaps period)
-  or Exists(IntubatedPeriods. "Extubation Procedures" p
+  or Exists(IntubatedPeriods."Extubation Procedures" p
               where convert p to Interval<DateTime> overlaps period)
   or Exists("Inadvertent Extubation Events" e
               where convert e to DateTime during period)

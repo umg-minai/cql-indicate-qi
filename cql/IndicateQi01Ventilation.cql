@@ -349,13 +349,12 @@ define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
     let tidalVolumeQuantity:  convert tidalVolume to Quantity,
         tidalVolumeValue:     (convert tidalVolumeQuantity to 'mL').value,
         tidalVolumeTime:      convert tidalVolume to DateTime,
-        // The function returns the ideal body weight converted/scaled to kg/m
-        // not just any mass/length dimensions so taking the value out of the
-        // quantity is well-defined.
+        // The function returns the ideal body weight expressed in a unit of
+        // mass that is either kg itself or convertible to kg.
         idealBodyWeight:      elm."Ideal Body Weight Measured or Computed Before"(
                                 tidalVolumeTime
                               ),
-        idealBodyWeightValue: idealBodyWeight.value
+        idealBodyWeightValue: (convert idealBodyWeight to 'kg').value
       return tidalVolumeValue in Interval[
                                    4 * idealBodyWeightValue,
                                    8 * idealBodyWeightValue

@@ -512,41 +512,91 @@ define "Debug Results":
                                          where m in visitInterval
                                          return all m
         return all (visitWithPeriods.overlappingPeriods) p
-          let measurementsInPeriod: (measurementsInVisit) m
-                                      where m in p
-                                      return all m,
-              peepQuantity:         Median(
-                                      (measurementsInPeriod) m
-                                        return all convert m to Quantity
-                                    ),
-              tidalVolume:          Median(
-                                      (measurementsInPeriod) m
-                                        let peepTime: convert m to DateTime
-                                          return all "Tidal Volume LOCF"(peepTime)
-                                    ),
-              plateauPressure:      Median(
-                                      (measurementsInPeriod) m
-                                        let peepTime: convert m to DateTime
-                                          return all "Effective Plateau Pressure"(peepTime)
-                                    ),
-              pressureDifference:   Median(
-                                      (measurementsInPeriod) m
-                                        let peepTime: convert m to DateTime
-                                          return all plateauPressure - peepQuantity
-                                    ),
-              recommendedPEEP:      Median(
-                                      (measurementsInPeriod) m
-                                        let peepTime: convert m to DateTime
-                                          return all "Recommended PEEP for PaO2"(peepTime)
-                                    )
+          let measurementsInPeriod:        (measurementsInVisit) m
+                                             where m in p
+                                             return all m,
+              peepQuantity:                Median(
+                                             (measurementsInPeriod) m
+                                               return all convert m to Quantity
+                                           ),
+              tidalVolume:                 Median(
+                                             "Usable Tidal Volume Measurements" m
+                                               where m in p
+                                               return all m
+                                           ),
+              tidalVolumeLocf:             Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all "Tidal Volume LOCF"(peepTime)
+                                           ),
+              plateauPressure:             Median(
+                                             "Plateau Pressure Measurements" m
+                                               where m in p
+                                               return all m
+                                           ),
+              plateauPressureLocf:         Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all "Effective Plateau Pressure"(peepTime)
+                                           ),
+              pressureDifference:          Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all plateauPressure - peepQuantity
+                                           ),
+              recommendedPEEP:             Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all "Recommended PEEP for PaO2"(peepTime)
+                                           ),
+              ventilationProcedureCount:   Count(
+                                             "Ventilation Procedures" o
+                                               where convert o to Interval<DateTime> overlaps p
+                                               return all o
+                                           ),
+              intubationTubeExposureCount: Count(
+                                             "Intubation Tube Exposures" e
+                                               where convert e to Interval<DateTime> overlaps p
+                                               return all e
+                                           ),
+              ardsCondition:               if "ARDS Condition in Period"(p) then 1.0 else 0.0,
+              paO2:                        Median(
+                                             "PaO2 Measurements" m
+                                               where m in p
+                                               return all m
+                                           ),
+              paO2Locf:                    Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all "PaO2 LOCF"(peepTime)
+                                           ),
+              fiO2:                        Median(
+                                             "FiO2 Measurements" m
+                                               where m in p
+                                               return all m
+                                           ),
+              fiO2Locf:                    Median(
+                                             (measurementsInPeriod) m
+                                               let peepTime: convert m to DateTime
+                                                 return all "FiO2 LOCF"(peepTime)
+                                           )
           return all {
                        period: p,
                        values: {
-                                 (convert peepQuantity to 'cm[H2O]').value       as Decimal,
-                                 (convert tidalVolume to 'mL').value             as Decimal,
-                                 (convert plateauPressure to 'cm[H2O]').value    as Decimal,
-                                 (convert pressureDifference to 'cm[H2O]').value as Decimal,
-                                 (convert recommendedPEEP to 'cm[H2O]').value    as Decimal
+                                 (convert peepQuantity          to 'cm[H2O]').value as Decimal,
+                                 (convert tidalVolume           to 'mL')     .value as Decimal,
+                                 (convert tidalVolumeLocf       to 'mL')     .value as Decimal,
+                                 (convert plateauPressure       to 'cm[H2O]').value as Decimal,
+                                 (convert plateauPressureLocf   to 'cm[H2O]').value as Decimal,
+                                 (convert pressureDifference    to 'cm[H2O]').value as Decimal,
+                                 (convert recommendedPEEP       to 'cm[H2O]').value as Decimal,
+                                 convert ventilationProcedureCount                  to Decimal,
+                                 convert intubationTubeExposureCount                to Decimal,
+                                 ardsCondition,
+                                 (convert paO2                  to 'mm[Hg]') .value as Decimal,
+                                 (convert paO2Locf              to 'mm[Hg]') .value as Decimal,
+                                 (convert fiO2                  to '%')      .value as Decimal,
+                                 (convert fiO2Locf              to '%')      .value as Decimal
                                }
                      }
   )

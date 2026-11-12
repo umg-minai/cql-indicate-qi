@@ -17,6 +17,7 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 
+include Intervals called I
 include TimePeriods called T
 
 include IndicateQiUtilities called U
@@ -349,41 +350,44 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
 define function "Is mild ARDS"("PaO2/FiO2" Quantity):
   "PaO2/FiO2" > 200 'mm[Hg]'
 
-define function "ARDS Condition in Period"(period Interval<DateTime>):
-     Exists("ARDS Conditions" c
-              where (convert c to Interval<DateTime>) overlaps period)
-  or // In some datasets, ARDS is not represented explicitly as an
-     // ConditionOccurrence. To support these datasets, apply a
-     // second criterion based on a clinical definition of ARDS. The
-     // computation of the second criterion can either use the Horowitz index
-     // directly or calculate it from PaO2 and FiO2 measurements.
-     (1) _
-       let horowitzMeasurement: "PaO2/FiO2 LOCF"(end of period)
-         return if horowitzMeasurement is not null then
-                  (convert horowitzMeasurement to Quantity) < 200 'mm[Hg]'
-                else
-                  false
-  or (1) __
-       let paO2Measurement: "PaO2 LOCF"(end of period)
-         return if paO2Measurement is not null then
-                  (1) ___
-                    // Find a FiO2 measurement that precedes the
-                    // selected PaO2 measurement. If there is one, make
-                    // sure it is within 60 minutes of the PaO2
-                    // measurement. If both measurements are available,
-                    // compute the fallback criterion.
-                    let paO2Time:        convert paO2Measurement to DateTime,
-                        fiO2Measurement: "FiO2 LOCF"(paO2Time),
-                        fiO2Time:        convert fiO2Measurement to DateTime
-                      return if (duration in minutes between fiO2Time and paO2Time)
-                                <= 60 then
-                               ((convert paO2Measurement to Quantity)
-                                / (convert fiO2Measurement to Quantity))
-                               < 200 'mm[Hg]'
-                             else
-                               false
-                else
-                  false
+define function "ARDS Condition Periods in Period"(period Interval<DateTime>):
+  I.UnionIntervals(
+    "ARDS Conditions" c
+      let ardsInterval: (convert c to Interval<DateTime>)
+        where ardsInterval overlaps period
+        return all ardsInterval intersect period,
+    // In some datasets, ARDS is not represented explicitly as an
+    // ConditionOccurrence. To support these datasets, apply a
+    // alternative criterion based on a clinical definition of ARDS. The
+    // computation of the second criterion can either use the Horowitz index
+    // directly or calculate it from PaO2 and FiO2 measurements.
+    //
+    // We combine the intervals for the Horowitz index measurements and
+    // separate PaO2 and FiO2 measurements since they may represent
+    // measurements taken at different times.
+    I.UnionIntervals(
+      "PaO2/FiO2 (Horowitz index) Measurements" horowitzMeasurement
+        where     horowitzMeasurement in period
+              and (convert horowitzMeasurement to Quantity) < 200 'mm[Hg]'
+        return all (1) _
+                     let dateTime: convert horowitzMeasurement to DateTime
+                       return Interval[dateTime, dateTime],
+      "PaO2 Measurements" paO2Measurement
+        // Find a FiO2 measurement that precedes the
+        // selected PaO2 measurement. If there is one, make
+        // sure it is within 60 minutes of the PaO2
+        // measurement. If both measurements are available,
+        // compute the fallback criterion.
+        let paO2Time:        convert paO2Measurement to DateTime,
+            fiO2Measurement: "FiO2 LOCF"(paO2Time),
+            fiO2Time:        convert fiO2Measurement to DateTime
+          where     paO2Time during period
+                and (duration in minutes between fiO2Time and paO2Time) <= 60
+                and ((convert paO2Measurement to Quantity)
+                     / (convert fiO2Measurement to Quantity)) < 200 'mm[Hg]'
+          return all Interval[paO2Time, paO2Time]
+    )
+  )
 
 define function "Recommended PEEP for PaO2"(peepTime DateTime):
   (1) _
@@ -453,18 +457,27 @@ define function "Is Conforming PEEP"(peepMeasurement Tuple{concept  OMOP.Concept
 
 // Quality Indicator
 
-// TODO(moringenj): We require that all conditions are fulfilled within a visit.
-//                  Is that logic correct?
 define function "Is in Initial Population"(visitInterval Interval<DateTime>):
-      Exists("Ventilation Procedures" p
-               where (convert p to Interval<DateTime>)
-                     overlaps visitInterval)
-  and (   Exists(IntubatedPeriods."Intubated Periods via Device Exposure" i
-                   where i overlaps visitInterval)
-       or Exists(IntubatedPeriods."Intubated Periods via Procedure" i
-                   where i overlaps visitInterval))
-  and "ARDS Condition in Period"(visitInterval)
-  and AgeInYearsAt(start of visitInterval) >= 18
+      AgeInYearsAt(start of visitInterval) >= 18
+  and Exists(collapse(
+        I.IntersectIntervals(
+          "Ventilation Procedures" p
+            let ventilationInterval: convert p to Interval<DateTime>
+              where ventilationInterval overlaps visitInterval
+              return all ventilationInterval,
+          I.IntersectIntervals(
+            I.UnionIntervals(
+              IntubatedPeriods."Intubated Periods via Device Exposure" i
+                where i overlaps visitInterval
+                return all i intersect visitInterval,
+              IntubatedPeriods."Intubated Periods via Procedure" i
+                where i overlaps visitInterval
+                return all i intersect visitInterval
+            ),
+            "ARDS Condition Periods in Period"(visitInterval)
+          )
+        )
+      ))
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods

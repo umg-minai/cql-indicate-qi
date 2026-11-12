@@ -17,6 +17,7 @@ using OMOP version 'v5.4'
 
 include OMOPHelpers
 
+include Intervals called I
 include TimePeriods called T
 
 include IndicateQiUtilities called U
@@ -89,13 +90,15 @@ concept "Plateau Pressure Measurement": {
 
 // PEEP Tables
 
+// The following two functions are called only with quantities with unit '1'
+// so that no repeated conversion is necessary.
 define function "Low PEEP for FiO2"(FiO2 Quantity):
   Quantity{
     value: case
-             when FiO2 < 0.5 '%' then 5
-             when FiO2 < 0.6 '%' then 8
-             when FiO2 < 0.8 '%' then 10
-             when FiO2 < 1.0 '%' then 14
+             when FiO2 < 0.5 '1' then 5
+             when FiO2 < 0.6 '1' then 8
+             when FiO2 < 0.8 '1' then 10
+             when FiO2 < 1.0 '1' then 14
              else 18
            end,
     unit:  'cm[H2O]'
@@ -104,10 +107,10 @@ define function "Low PEEP for FiO2"(FiO2 Quantity):
 define function "High PEEP for FiO2"(FiO2 Quantity):
   Quantity{
     value: case
-             when FiO2 < 0.4 '%' then 5
-             when FiO2 < 0.5 '%' then 14
-             when FiO2 < 0.6 '%' then 16
-             when FiO2 < 0.9 '%' then 20
+             when FiO2 < 0.4 '1' then 5
+             when FiO2 < 0.5 '1' then 14
+             when FiO2 < 0.6 '1' then 16
+             when FiO2 < 0.9 '1' then 20
              else 22
            end,
     unit:  'cm[H2O]'
@@ -119,16 +122,35 @@ context Patient
 // Forward" (LOCF) logic below.
 define "PaO2 Measurements":
   [Measurement: "PaO2 Measurement"] m
+    where U.EnsureQuantityWithUnit('PaO2 measurement', m, 'mm[Hg]') is not null
     return all m
     sort by measurementDatetime desc
 
 define "FiO2 Measurements":
   [Measurement: "FiO2 Measurement"] m
+    where (1) _
+            let quantity: U.EnsureQuantity('FiO2 measurement', m)
+              // Make sure that other dimensionless units don't slip through.
+              // This is unlikely but for example convert 1 '[IU]' to '%'
+              // "works" in CQL.
+              return case
+                       when quantity is null then
+                         false
+                       when not (quantity.unit in { '1', '%' }) then
+                         U.SignalProblemWithValue(
+                           'FiO2 measurement unit must be either \'1\' or \'%\','
+                           + ' not \'' + quantity.unit + '\'',
+                           false
+                         )
+                       else
+                         true
+                     end
     return all m
     sort by measurementDatetime desc
 
 define "PaO2/FiO2 (Horowitz index) Measurements":
   [Measurement: "PaO2/FiO2 (Horowitz index) Measurement"] m
+    where U.EnsureQuantityWithUnit('Horowitz index', m, 'mm[Hg]') is not null
     return all m
     sort by measurementDatetime desc
 
@@ -303,7 +325,7 @@ define function "Tidal Volume LOCF"(targetTime DateTime):
           where m same hour or before targetTime
           return all m)
 
-// PaO2 unit mm[Hg], FiO2 unit %.  This function produces mm[Hg].
+// PaO2 unit mm[Hg], FiO2 unit either '1' or '%'.  This function produces mm[Hg].
 define function "Ensure PaO2/FiO2"(peepTime DateTime):
   (1) _
     let "PaO2/fiO2": "PaO2/FiO2 LOCF"(peepTime)
@@ -328,14 +350,58 @@ define function "Ensure PaO2/FiO2"(peepTime DateTime):
 define function "Is mild ARDS"("PaO2/FiO2" Quantity):
   "PaO2/FiO2" > 200 'mm[Hg]'
 
+define function "ARDS Condition Periods in Period"(period Interval<DateTime>):
+  I.UnionIntervals(
+    "ARDS Conditions" c
+      let ardsInterval: (convert c to Interval<DateTime>)
+        where ardsInterval overlaps period
+        return all ardsInterval intersect period,
+    // In some datasets, ARDS is not represented explicitly as an
+    // ConditionOccurrence. To support these datasets, apply a
+    // alternative criterion based on a clinical definition of ARDS. The
+    // computation of the second criterion can either use the Horowitz index
+    // directly or calculate it from PaO2 and FiO2 measurements.
+    //
+    // We combine the intervals for the Horowitz index measurements and
+    // separate PaO2 and FiO2 measurements since they may represent
+    // measurements taken at different times.
+    I.UnionIntervals(
+      "PaO2/FiO2 (Horowitz index) Measurements" horowitzMeasurement
+        where     horowitzMeasurement in period
+              and (convert horowitzMeasurement to Quantity) < 200 'mm[Hg]'
+        return all (1) _
+                     let dateTime: convert horowitzMeasurement to DateTime
+                       return Interval[dateTime, dateTime],
+      "PaO2 Measurements" paO2Measurement
+        // Find a FiO2 measurement that precedes the
+        // selected PaO2 measurement. If there is one, make
+        // sure it is within 60 minutes of the PaO2
+        // measurement. If both measurements are available,
+        // compute the fallback criterion.
+        let paO2Time:        convert paO2Measurement to DateTime,
+            fiO2Measurement: "FiO2 LOCF"(paO2Time),
+            fiO2Time:        convert fiO2Measurement to DateTime
+          where     paO2Time during period
+                and (duration in minutes between fiO2Time and paO2Time) <= 60
+                and ((convert paO2Measurement to Quantity)
+                     / (convert fiO2Measurement to Quantity)) < 200 'mm[Hg]'
+          return all Interval[paO2Time, paO2Time]
+    )
+  )
+
 define function "Recommended PEEP for PaO2"(peepTime DateTime):
   (1) _
-    let FiO2:        "FiO2 LOCF"(peepTime),
-        "PaO2/FiO2": "Ensure PaO2/FiO2"(peepTime)
+    let FiO2:         "FiO2 LOCF"(peepTime),
+        // Implicit conversion to OMOP.Quantity followed by explicit unit
+        // conversion to '1' (fraction, possible conversion from '%'). The
+        // conversion cannot fail because FiO2 measurements are eagerly checked
+        // for convertibility to unit '1'.
+        FiO2Quantity: convert FiO2 to '1',
+        "PaO2/FiO2":  "Ensure PaO2/FiO2"(peepTime)
       return if "Is mild ARDS"("PaO2/FiO2") then
-               "Low PEEP for FiO2"(FiO2)
+               "Low PEEP for FiO2"(FiO2Quantity)
              else
-               "High PEEP for FiO2"(FiO2)
+               "High PEEP for FiO2"(FiO2Quantity)
 
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _
@@ -391,20 +457,27 @@ define function "Is Conforming PEEP"(peepMeasurement Tuple{concept  OMOP.Concept
 
 // Quality Indicator
 
-// TODO(moringenj): We require that all conditions are fulfilled within a visit.
-//                  Is that logic correct?
 define function "Is in Initial Population"(visitInterval Interval<DateTime>):
-      Exists("Ventilation Procedures" p
-               where (convert p to Interval<DateTime>)
-                     overlaps visitInterval)
-  and (   Exists(IntubatedPeriods."Intubated Periods via Device Exposure" i
-                   where i overlaps visitInterval)
-       or Exists(IntubatedPeriods."Intubated Periods via Procedure" i
-                   where i overlaps visitInterval))
-  and Exists("ARDS Conditions" c
-               where (convert c to Interval<DateTime>)
-                     overlaps visitInterval)
-  and AgeInYearsAt(start of visitInterval) >= 18
+      AgeInYearsAt(start of visitInterval) >= 18
+  and Exists(collapse(
+        I.IntersectIntervals(
+          "Ventilation Procedures" p
+            let ventilationInterval: convert p to Interval<DateTime>
+              where ventilationInterval overlaps visitInterval
+              return all ventilationInterval,
+          I.IntersectIntervals(
+            I.UnionIntervals(
+              IntubatedPeriods."Intubated Periods via Device Exposure" i
+                where i overlaps visitInterval
+                return all i intersect visitInterval,
+              IntubatedPeriods."Intubated Periods via Procedure" i
+                where i overlaps visitInterval
+                return all i intersect visitInterval
+            ),
+            "ARDS Condition Periods in Period"(visitInterval)
+          )
+        )
+      ))
 
 define "Visit Results":
   (T."Visits with 24-hour Periods") visitWithPeriods

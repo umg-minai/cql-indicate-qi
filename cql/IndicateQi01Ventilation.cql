@@ -376,7 +376,7 @@ define function "ARDS Condition in Period"(period Interval<DateTime>):
                         fiO2Measurement: "FiO2 LOCF"(paO2Time),
                         fiO2Time:        convert fiO2Measurement to DateTime
                       return if (duration in minutes between fiO2Time and paO2Time)
-                                < 60 then
+                                <= 60 then
                                ((convert paO2Measurement to Quantity)
                                 / (convert fiO2Measurement to Quantity))
                                < 200 'mm[Hg]'

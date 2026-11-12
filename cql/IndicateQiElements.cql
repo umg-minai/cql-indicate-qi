@@ -33,7 +33,13 @@ code "Body Height": '3036277' from OMOPSV
 
 code "Body Weight": '4099154' from OMOPSV
 
-code "Ideal Body Weight": '4062985' from OMOPSV
+code "Ideal body weight (SNOMED)": '4062985' from OMOPSV
+code "Ideal body weight (LOINC)": '3032445' from OMOPSV
+
+concept "Ideal body weight": {
+  "Ideal body weight (SNOMED)",
+  "Ideal body weight (LOINC)"
+}
 
 code "Gender Female": '8532' from OMOPSV
 code "Gender Male":   '8507' from OMOPSV
@@ -89,7 +95,8 @@ define function "Most Recent Body Weight Measurement Before"(targetTime DateTime
           return all m)
 
 define "Ideal Body Weight Measurements":
-  [Measurement: "Ideal Body Weight"] m
+  [Measurement: "Ideal body weight"] m
+    where U.EnsureQuantityWithUnit('Ideal body weight', m, 'kg') is not null
     return all m
     sort by measurementDatetime desc
 
@@ -104,7 +111,7 @@ define function "Ideal Body Weight Measured or Computed Before"(targetTime DateT
         bodyHeight:      "Most Recent Body Height Measurement Before"(targetTime)
       return case
                when idealBodyWeight is not null then
-                 U.EnsureQuantity('Ideal body weight', idealBodyWeight)
+                 convert idealBodyWeight to Quantity
                when bodyHeight is not null then
                  "Ideal Body Weight for Height"(
                    U.EnsureQuantity('Body height', bodyHeight),

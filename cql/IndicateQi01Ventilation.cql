@@ -23,6 +23,7 @@ include IndicateQiUtilities called U
 include IndicateQiElements called elm
 
 include TidalVolumeMeasurements
+include IntubatedPeriods
 
 code "Invasive Ventilation Procedure": '37158404' from elm.OMOPSV
 
@@ -222,11 +223,6 @@ define "Ventilation Procedures":
     where U.CheckDateTimeInterval(p)
     return all p
 
-define "Intubation Tube Exposures":
-  [DeviceExposure: elm."Intubation Tube"] e
-    where U.CheckDateTimeInterval(e)
-    return all e
-
 define "ARDS Conditions":
   [ConditionOccurrence: "ARDS Condition"] c
     where U.CheckDateTimeInterval(c)
@@ -401,9 +397,10 @@ define function "Is in Initial Population"(visitInterval Interval<DateTime>):
       Exists("Ventilation Procedures" p
                where (convert p to Interval<DateTime>)
                      overlaps visitInterval)
-  and Exists("Intubation Tube Exposures" d
-               where (convert d to Interval<DateTime>)
-                      overlaps visitInterval)
+  and (   Exists(IntubatedPeriods."Intubated Periods via Device Exposure" i
+                   where i overlaps visitInterval)
+       or Exists(IntubatedPeriods."Intubated Periods via Procedure" i
+                   where i overlaps visitInterval))
   and Exists("ARDS Conditions" c
                where (convert c to Interval<DateTime>)
                      overlaps visitInterval)

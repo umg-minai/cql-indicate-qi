@@ -89,13 +89,15 @@ concept "Plateau Pressure Measurement": {
 
 // PEEP Tables
 
+// The following two functions are called only with quantities with unit '1'
+// so that no repeated conversion is necessary.
 define function "Low PEEP for FiO2"(FiO2 Quantity):
   Quantity{
     value: case
-             when FiO2 < 0.5 '%' then 5
-             when FiO2 < 0.6 '%' then 8
-             when FiO2 < 0.8 '%' then 10
-             when FiO2 < 1.0 '%' then 14
+             when FiO2 < 0.5 '1' then 5
+             when FiO2 < 0.6 '1' then 8
+             when FiO2 < 0.8 '1' then 10
+             when FiO2 < 1.0 '1' then 14
              else 18
            end,
     unit:  'cm[H2O]'
@@ -104,10 +106,10 @@ define function "Low PEEP for FiO2"(FiO2 Quantity):
 define function "High PEEP for FiO2"(FiO2 Quantity):
   Quantity{
     value: case
-             when FiO2 < 0.4 '%' then 5
-             when FiO2 < 0.5 '%' then 14
-             when FiO2 < 0.6 '%' then 16
-             when FiO2 < 0.9 '%' then 20
+             when FiO2 < 0.4 '1' then 5
+             when FiO2 < 0.5 '1' then 14
+             when FiO2 < 0.6 '1' then 16
+             when FiO2 < 0.9 '1' then 20
              else 22
            end,
     unit:  'cm[H2O]'
@@ -125,6 +127,23 @@ define "PaO2 Measurements":
 
 define "FiO2 Measurements":
   [Measurement: "FiO2 Measurement"] m
+    where (1) _
+            let quantity: U.EnsureQuantity('FiO2 measurement', m)
+              // Make sure that other dimensionless units don't slip through.
+              // This is unlikely but for example convert 1 '[IU]' to '%'
+              // "works" in CQL.
+              return case
+                       when quantity is null then
+                         false
+                       when not (quantity.unit in { '1', '%' }) then
+                         U.SignalProblemWithValue(
+                           'FiO2 measurement unit must be either \'1\' or \'%\','
+                           + ' not \'' + quantity.unit + '\'',
+                           false
+                         )
+                       else
+                         true
+                     end
     return all m
     sort by measurementDatetime desc
 
@@ -305,7 +324,7 @@ define function "Tidal Volume LOCF"(targetTime DateTime):
           where m same hour or before targetTime
           return all m)
 
-// PaO2 unit mm[Hg], FiO2 unit %.  This function produces mm[Hg].
+// PaO2 unit mm[Hg], FiO2 unit either '1' or '%'.  This function produces mm[Hg].
 define function "Ensure PaO2/FiO2"(peepTime DateTime):
   (1) _
     let "PaO2/fiO2": "PaO2/FiO2 LOCF"(peepTime)
@@ -368,12 +387,17 @@ define function "ARDS Condition in Period"(period Interval<DateTime>):
 
 define function "Recommended PEEP for PaO2"(peepTime DateTime):
   (1) _
-    let FiO2:        "FiO2 LOCF"(peepTime),
-        "PaO2/FiO2": "Ensure PaO2/FiO2"(peepTime)
+    let FiO2:         "FiO2 LOCF"(peepTime),
+        // Implicit conversion to OMOP.Quantity followed by explicit unit
+        // conversion to '1' (fraction, possible conversion from '%'). The
+        // conversion cannot fail because FiO2 measurements are eagerly checked
+        // for convertibility to unit '1'.
+        FiO2Quantity: convert FiO2 to '1',
+        "PaO2/FiO2":  "Ensure PaO2/FiO2"(peepTime)
       return if "Is mild ARDS"("PaO2/FiO2") then
-               "Low PEEP for FiO2"(FiO2)
+               "Low PEEP for FiO2"(FiO2Quantity)
              else
-               "High PEEP for FiO2"(FiO2)
+               "High PEEP for FiO2"(FiO2Quantity)
 
 define function "Is Conforming Tidal Volume"(tidalVolume Measurement):
   (1) _

@@ -558,11 +558,11 @@ define "Debug Results":
                                                return all o
                                            ),
               intubationTubeExposureCount: Count(
-                                             "Intubation Tube Exposures" e
+                                             IntubatedPeriods."Intubation Tube Exposures" e
                                                where convert e to Interval<DateTime> overlaps p
                                                return all e
                                            ),
-              ardsCondition:               if "ARDS Condition in Period"(p) then 1.0 else 0.0,
+              ardsCondition:               if Exists("ARDS Condition Periods in Period"(p)) then 1.0 else 0.0,
               paO2:                        Median(
                                              "PaO2 Measurements" m
                                                where m in p

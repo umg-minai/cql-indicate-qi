@@ -352,10 +352,18 @@ define function "Is mild ARDS"("PaO2/FiO2" Quantity):
 
 define function "ARDS Condition Periods in Period"(period Interval<DateTime>):
   I.UnionIntervals(
+    // To account for condition occurrences that are coded without an end time
+    // or identical start and end times, expand ARDS condition occurrences of
+    // such shape to the end of the visit. This allows the temporal
+    // intersection logic to behave as required in the textual specification in
+    // such cases.
     "ARDS Conditions" c
-      let ardsInterval: (convert c to Interval<DateTime>)
-        where ardsInterval overlaps period
-        return all ardsInterval intersect period,
+      let conditionInterval: U.EnsureDateTimeInterval(c)
+        where conditionInterval overlaps period
+          return all if end of conditionInterval = start of conditionInterval then
+                       Interval[start of conditionInterval, end of period]
+                     else
+                       conditionInterval intersect period,
     // In some datasets, ARDS is not represented explicitly as an
     // ConditionOccurrence. To support these datasets, apply a
     // alternative criterion based on a clinical definition of ARDS. The

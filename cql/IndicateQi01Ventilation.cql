@@ -372,20 +372,23 @@ define function "ARDS Condition Periods in Period"(period Interval<DateTime>):
         return all (1) _
                      let dateTime: convert horowitzMeasurement to DateTime
                        return Interval[dateTime, dateTime],
-      "PaO2 Measurements" paO2Measurement
-        // Find a FiO2 measurement that precedes the
-        // selected PaO2 measurement. If there is one, make
-        // sure it is within 60 minutes of the PaO2
-        // measurement. If both measurements are available,
-        // compute the fallback criterion.
-        let paO2Time:        convert paO2Measurement to DateTime,
-            fiO2Measurement: "FiO2 LOCF"(paO2Time),
-            fiO2Time:        convert fiO2Measurement to DateTime
-          where     paO2Time during period
-                and (duration in minutes between fiO2Time and paO2Time) <= 60
-                and ((convert paO2Measurement to Quantity)
-                     / (convert fiO2Measurement to Quantity)) < 200 'mm[Hg]'
-          return all Interval[paO2Time, paO2Time]
+      Flatten({
+        "PaO2 Measurements" paO2Measurement
+          // Find a FiO2 measurement that precedes the
+          // selected PaO2 measurement. If there is one, make
+          // sure it is within 60 minutes of the PaO2
+          // measurement. If both measurements are available,
+          // compute the fallback criterion.
+          let paO2Time: convert paO2Measurement to DateTime
+            where     paO2Time during period
+              return all (1) __
+                           let fiO2Measurement: "FiO2 LOCF"(paO2Time),
+                               fiO2Time:        convert fiO2Measurement to DateTime
+                             where     (duration in minutes between fiO2Time and paO2Time) <= 60
+                                   and ((convert paO2Measurement to Quantity)
+                                        / (convert fiO2Measurement to Quantity)) < 200 'mm[Hg]'
+                               return all Interval[paO2Time, paO2Time]
+      })
     )
   )
 

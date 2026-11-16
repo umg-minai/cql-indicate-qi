@@ -152,7 +152,7 @@ define "Debug Results":
       return all (visitWithPeriods.overlappingPeriods) period
         let breathingTrialCount:           Count("Trial of Spontaneous Breathing Procedures" p
                                                    where convert p to Interval<DateTime> overlaps period),
-            extubationProcedureCount:      Count("Extubation Procedures" p
+            extubationProcedureCount:      Count(IntubatedPeriods."Extubation Procedures" p
                                                    where convert p to Interval<DateTime> overlaps period),
             inadvertentExtubationCount:    Count("Inadvertent Extubation Events" e
                                                    where convert e to DateTime during period),

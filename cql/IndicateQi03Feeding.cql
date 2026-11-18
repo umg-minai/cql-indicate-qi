@@ -152,7 +152,8 @@ define function "Last Phosphate Measurement in Period"(period Interval<DateTime>
 // administered in exposure scaled by the fraction of exposure that
 // temporally overlaps period (e.g. for a exposure of 10 hours of which 5
 // hours overlap period, the returned value would be half the amount in
-// exposure).
+// exposure).  If the exposure occurs at an instant (the exposure interval has
+// duration 0), return the full amount of the exposure.
 //
 // This function works correctly regardless of whether exposure and
 // period do actually overlap.  However, the caller should check for an
@@ -161,14 +162,22 @@ define function "Insulin Strength for Period"(exposure DrugExposure,
                                               period   Interval<DateTime>):
   (1) _
     let exposureInterval: convert exposure to Interval<DateTime>,
-        overlapInterval:  exposureInterval intersect period,
-        overlapRatio:     duration in seconds of overlapInterval
-                          / duration in seconds of exposureInterval,
-        exposureStrengh:  InsulinStrength."Insulin Exposure"(
+        exposureStrength: InsulinStrength."Insulin Exposure"(
                             exposure,
                             InsulinIngredients."Insulin Ingredient Concepts"
                           )
-      return overlapRatio * exposureStrengh
+      return case
+               when duration in seconds of exposureInterval > 0 then
+                 (1) __
+                   let overlapInterval: exposureInterval intersect period,
+                       overlapRatio:    duration in seconds of overlapInterval
+                                        / duration in seconds of exposureInterval
+                     return overlapRatio * exposureStrength
+               when start of exposureInterval in period then
+                 exposureStrength
+               else
+                 0 '[IU]'
+             end
 
 define function "Total Insulin Rate in Period"(period Interval<DateTime>):
   (1) _

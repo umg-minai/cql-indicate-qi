@@ -86,11 +86,23 @@ define "Phosphate Measurements":
     sort by measurementDatetime desc
 
 define "Insulin Exposures":
+  // The goal is to allow only actually administered drugs, not ordered
+  // exposures:
+  // 1. Ordered exposures may not have been (and may never be) administered
+  // 2. Ordered exposures do not have sufficient information for computing the
+  //    administered ingredient quantity in many datasets.
+  // We implement this goal by explicitly excluding exposures with drug type
+  // "EHR order" because we don't know which concepts, if any, data providers
+  // will assign to the drug type. Rather than trying to allowlist all concepts
+  // that represent actual administration, we blocklist the one concept we know
+  // is used for ordered exposures.
         ([DrugExposure: InsulinDrugs."Insulin Drugs"] d
-           where U.CheckDateTimeInterval(d)
+           where     not (d.drugTypeConcept = elm."EHR order")
+                 and U.CheckDateTimeInterval(d)
            return all d)
   union ([DrugExposure: InsulinIngredients."Insulin Ingredients"] d
-           where U.CheckDateTimeInterval(d)
+           where     not (d.drugTypeConcept = elm."EHR order")
+                 and U.CheckDateTimeInterval(d)
            return all d)
 
 define "Energy Requirement Observations":

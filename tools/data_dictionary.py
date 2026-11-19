@@ -49,7 +49,8 @@ def ensure_data_dictionary_clone(timeout=60):
             parent.mkdir(parents=True, exist_ok=True)
             run_git(parent, 'clone', REPOSITORY_URL)
         else:
-            run_git(CLONE_DIRECTORY, 'pull')
+            pass
+           # run_git(CLONE_DIRECTORY, 'pull')
         output = run_git(CLONE_DIRECTORY, 'rev-parse', 'HEAD')
         data_dictionary_commit = output.strip().decode()
         return CLONE_DIRECTORY, data_dictionary_commit

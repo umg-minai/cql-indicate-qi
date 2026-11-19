@@ -1,7 +1,7 @@
 import glob
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, List
 
 from terminology_from_data_dictionary.model import Output
 from utilities import make_concept_set_url, make_athena_url, maybe_truncate
@@ -21,11 +21,11 @@ def format_concept_id_for_markdown(concept_id: int):
     return format_markdown_link(label, url) if url else label
 
 
-def format_concept_set_for_markdown(concept_set_id: int, concept_set_name: str, concept_set_version: str, max_width = 80):
+def format_concept_set_for_markdown(concept_set_id: int, concept_set_name: str, concept_set_version: str, max_width=80):
     id_string = str(concept_set_id)
     label = (maybe_truncate(concept_set_name, max_length=max_width - (len(id_string) + 3))
              + f" ({id_string})")
-    url  = make_concept_set_url(concept_set_id)
+    url = make_concept_set_url(concept_set_id)
     link = format_markdown_link(label, url)
     return f"{link} v{concept_set_version}"
 
@@ -33,7 +33,7 @@ def format_concept_set_for_markdown(concept_set_id: int, concept_set_name: str, 
 def format_markdown_table(outputs: List[Output]):
     header = ["Concept ID", "Concept Name", "Descendants", "DD Concept Set"]
     rows = []
-    widths = [0]*len(header)
+    widths = [0] * len(header)
 
     def add_row(*values):
         row = []
@@ -44,7 +44,7 @@ def format_markdown_table(outputs: List[Output]):
         rows.append(row)
 
     add_row(*header)
-    for i, output in enumerate(outputs): #sorted(outputs, key=lambda x: x.concept_sets[0].name)):
+    for i, output in enumerate(outputs):
         add_row()
         for concept in sorted(output.concepts, key=lambda x: x.name.lower()):
             concept_set = concept.concept_set
@@ -73,7 +73,7 @@ def format_markdown_table(outputs: List[Output]):
     return "\n".join(lines)
 
 
-def update_markdown_file(outputs: Dict[str, Output], markdown_file: Path):
+def update_markdown_file(resolve_name: Callable[[str], Output], markdown_file: Path):
     print(f"Processing {markdown_file}")
     old_text = markdown_file.read_text()
     text = old_text
@@ -81,7 +81,7 @@ def update_markdown_file(outputs: Dict[str, Output], markdown_file: Path):
     match_count = 0
     while True:
         key, match = None, None
-        for maybe_match in re.finditer("<!-- inject:([a-zA-Z0-9,]+) -->\n(\\|[^\n]*\n)*", text, re.MULTILINE):
+        for maybe_match in re.finditer(r"<!-- inject:(.+?) -->\n(\|[^\n]*\n)*", text, re.MULTILINE):
             maybe_key = maybe_match.group(1)
             if maybe_key in done:
                 continue
@@ -93,17 +93,15 @@ def update_markdown_file(outputs: Dict[str, Output], markdown_file: Path):
             break
         match_count += 1
         table_outputs = []
-        for output_name in re.split(",", key):
-            output = outputs.get(output_name, None)
-            if not output:
-                known = ', '.join(outputs.keys())
-                raise RuntimeError(f"Markdown file {markdown_file} references mapping '{output_name}' which is not defined. Known mappings are {known}")
+        for concept_set_name in re.split(r'\|', key):
+            concept_set_name = concept_set_name.strip()
+            output = resolve_name(concept_set_name)
             table_outputs.append(output)
         table = format_markdown_table(table_outputs)
         text = (text[0:match.start(0)]
                 + f"<!-- inject:{key} -->\n"
                 + table
-                + text[match.end(0)-1:])
+                + text[match.end(0) - 1:])
     if match_count > 0:
         print(f"  {match_count} matches: {', '.join(sorted(done))}")
         if text == old_text:
@@ -113,8 +111,7 @@ def update_markdown_file(outputs: Dict[str, Output], markdown_file: Path):
             print(f"  File updated")
 
 
-def update_markdown_files(output: Dict[str, Output], markdown_directory: Path):
+def update_markdown_files(resolve_name: Callable[[str], Output], markdown_directory: Path):
     markdown_files = glob.glob("*.md", root_dir=markdown_directory)
     for markdown_file in sorted(markdown_files):
-        update_markdown_file(output, markdown_directory / markdown_file)
-
+        update_markdown_file(resolve_name, markdown_directory / markdown_file)

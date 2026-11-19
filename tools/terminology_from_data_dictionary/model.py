@@ -22,7 +22,7 @@ class Mapping(BaseModel, ABC):
 
 
 class ConceptSetMapping(Mapping):
-    concept_sets: List[int]
+    concept_sets: List[str]
 
 
 class CategoryMapping(Mapping):

@@ -25,9 +25,7 @@ def compute_output(context: Context,
                    concept_sets: List[ConceptSetInfo],
                    include: List[OMOPConceptReference],
                    exclude: List[OMOPConceptReference]):
-    """Return the effective concepts that should be emitted, for example into a CQL library or Markdown table."""
     concepts: Dict[int, ConceptOutput] = dict()
-    # Can we use the expression?
     use_expressions = True
     if exclude:
         use_expressions = False
@@ -40,11 +38,8 @@ def compute_output(context: Context,
                 if item.get("isExcluded"):
                     use_expressions = False
                     break
-    print("  Using resolved concept set because of exclusions")
 
     if use_expressions:
-        # Using expressions: go through the "unresolved" concept sets and collect the individual concepts, possibly
-        # with descendants but definitely without exclusions.
         for request in concept_sets:
             items = request.expression
             for item in items:
@@ -54,6 +49,7 @@ def compute_output(context: Context,
                 include_descendants = item.get("includeDescendants")
                 concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, include_descendants)
     else:
+        print("  Using resolved concept set because of exclusions")
         for request in concept_sets:
             resolved_concepts = request.resolved_concepts
             for resolved_concept in resolved_concepts:
@@ -61,7 +57,6 @@ def compute_output(context: Context,
                 concept_name = resolved_concept.get("conceptName")
                 concepts[concept_id] = ConceptOutput(request, concept_id, concept_name)
 
-    # Add and/or remove additional concepts
     for included in include:
         concept_id = included.concept_id
         if concept_id in concepts:
@@ -93,8 +88,16 @@ def make_generation_request(context: Context, concept_set_id: int):
                           context.resolved_concept_sets[concept_set_id])
 
 
-def resolve_concept_set_ids(context: Context, concept_set_ids: List[int]):
-    return [ make_generation_request(context, concept_set_id) for concept_set_id in concept_set_ids ]
+def resolve_concept_set_name(context: Context, name: str):
+    """Look up a concept set by exact name in the data dictionary. Raises RuntimeError if not found."""
+    for cs_id, cs in context.concept_sets.items():
+        if cs.get('name') == name:
+            return make_generation_request(context, cs_id)
+    raise RuntimeError(f"Concept set with name '{name}' not found in data dictionary.")
+
+
+def resolve_concept_set_names(context: Context, concept_set_names: List[str]):
+    return [resolve_concept_set_name(context, name) for name in concept_set_names]
 
 
 def resolve_categories(context: Context, category, subcategory):
@@ -104,12 +107,10 @@ def resolve_categories(context: Context, category, subcategory):
         return not metadata.get('reviewStatus') == 'deprecated' \
             and en.get("category") == category \
             and en.get("subcategory") == subcategory
-    return [ make_generation_request(context, concept_set_id)
-             for concept_set_id, concept_set in context.concept_sets.items()
-             if is_matching_concept_set(concept_set) ]
+    return [make_generation_request(context, concept_set_id)
+            for concept_set_id, concept_set in context.concept_sets.items()
+            if is_matching_concept_set(concept_set)]
 
-
-# Entry points
 
 CONFIG_FILE = pathlib.Path(__file__).parent / 'config.yaml'
 
@@ -119,21 +120,21 @@ def prepare():
         data = yaml.safe_load(file)
         configuration = Configuration.model_validate(data)
 
-    concept_sets,          repository_url,  commit  = load_concept_sets()
+    concept_sets, repository_url, commit = load_concept_sets()
     resolved_concept_sets, repository_url2, commit2 = load_resolved_concept_sets()
     assert repository_url == repository_url2
-    assert commit         == commit2
+    assert commit == commit2
     context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
 
     outputs = []
     for mapping in configuration.mappings:
         match mapping:
-          case ConceptSetMapping(concept_sets=concept_sets):
-            generation_requests = resolve_concept_set_ids(context, concept_sets)
-          case CategoryMapping(category=category, subcategory=subcategory):
-            generation_requests = resolve_categories(context, category, subcategory)
-          case _:
-            raise RuntimeError("Unreachable")
+            case ConceptSetMapping(concept_sets=concept_set_names):
+                generation_requests = resolve_concept_set_names(context, concept_set_names)
+            case CategoryMapping(category=category, subcategory=subcategory):
+                generation_requests = resolve_categories(context, category, subcategory)
+            case _:
+                raise RuntimeError("Unreachable")
         outputs.append(compute_output(context, generation_requests, mapping.include, mapping.exclude))
 
     return configuration, outputs
@@ -149,8 +150,46 @@ def generate_cql(output_directory):
 
 
 def generate_markdown(output_directory):
-    configuration, outputs = prepare()
-    outputs_by_key = dict()
-    for output, mapping in zip(outputs, configuration.mappings):
-        outputs_by_key[mapping.name] = output
-    update_markdown_files(outputs_by_key, output_directory)
+    with open(CONFIG_FILE) as file:
+        data = yaml.safe_load(file)
+        configuration = Configuration.model_validate(data)
+
+    concept_sets, repository_url, commit = load_concept_sets()
+    resolved_concept_sets, repository_url2, commit2 = load_resolved_concept_sets()
+    assert repository_url == repository_url2
+    assert commit == commit2
+    context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
+
+    # Lookup by config name (e.g. "InsulinDrugs", "AnticoagulationDrugs")
+    config_mappings = {mapping.name: mapping for mapping in configuration.mappings}
+
+    # Reverse lookup: data dictionary concept set name -> mapping (for exception entries)
+    # e.g. "Consultation with patient" -> ConsultationWithPatient mapping
+    cs_name_to_mapping = {}
+    for mapping in configuration.mappings:
+        if isinstance(mapping, ConceptSetMapping):
+            for cs_name in mapping.concept_sets:
+                cs_name_to_mapping[cs_name] = mapping
+
+    def resolve_name(name: str) -> Output:
+        name = name.strip()
+        if name in config_mappings:
+            # Matches by config name (e.g. "AnticoagulationDrugs")
+            mapping = config_mappings[name]
+            if isinstance(mapping, CategoryMapping):
+                generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
+            else:
+                generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+        elif name in cs_name_to_mapping:
+            # Matches by data dictionary name with exceptions
+            # e.g. "Consultation with patient" applies ConsultationWithPatient exceptions
+            mapping = cs_name_to_mapping[name]
+            generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+        else:
+            # Look up directly by name, no exceptions
+            generation_request = resolve_concept_set_name(context, name)
+            return compute_output(context, [generation_request], [], [])
+
+    update_markdown_files(resolve_name, output_directory)

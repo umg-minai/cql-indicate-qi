@@ -30,6 +30,8 @@ class Mapping(BaseModel, ABC):
 class ConceptSetMapping(Mapping):
     concept_sets: List[str]
     priorities: List[PriorityEntry] = Field(default=[])
+    # If given, only these concepts of the concept set(s) are used
+    only: List[OMOPConceptReference] = Field(default=[])
 
 
 class CategoryMapping(Mapping):

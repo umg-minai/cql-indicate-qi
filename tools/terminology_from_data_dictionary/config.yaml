@@ -61,3 +61,9 @@ mappings:
       - concept_id: 4029625
         name:       "Tidal volume"
         priority:   4
+
+  - name:         BodyHeight
+    concept_sets: ["Body height"]
+    only:
+      - concept_id: 3036277
+        name:       "Body height"

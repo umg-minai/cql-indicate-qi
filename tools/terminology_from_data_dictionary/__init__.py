@@ -39,10 +39,11 @@ def compute_output(context: Context,
                    concept_sets: List[ConceptSetInfo],
                    include: List[OMOPConceptReference],
                    exclude: List[OMOPConceptReference],
-                   priorities: Optional[List[PriorityEntry]] = None):
+                   priorities: Optional[List[PriorityEntry]] = None,
+                   only: Optional[List[OMOPConceptReference]] = None):
     concepts: Dict[int, ConceptOutput] = dict()
     use_expressions = True
-    if exclude:
+    if exclude or only:
         use_expressions = False
     else:
         for request in concept_sets:
@@ -66,7 +67,7 @@ def compute_output(context: Context,
                                                      concept.get("vocabularyId", ""),
                                                      concept.get("conceptCode", ""))
     else:
-        print("  Using resolved concept set because of exclusions")
+        print("  Using resolved concept set because of exclusions or restriction")
         for request in concept_sets:
             resolved_concepts = request.resolved_concepts
             for resolved_concept in resolved_concepts:
@@ -75,6 +76,21 @@ def compute_output(context: Context,
                 concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, False,
                                                      resolved_concept.get("vocabularyId", ""),
                                                      resolved_concept.get("conceptCode", ""))
+
+    if only:
+        selected: Dict[int, ConceptOutput] = dict()
+        for entry in only:
+            concept_id = entry.concept_id
+            if concept_id not in concepts:
+                raise RuntimeError(f"Concept {format_concept_for_terminal(concept_id, entry.name)} listed under 'only' is not present in concept set(s)")
+            elif not entry.name == concepts[concept_id].name:
+                actual = concepts[concept_id]
+                raise RuntimeError(f"Name of concept {format_concept_for_terminal(concept_id, entry.name)} listed under 'only' does not match name of {format_concept_for_terminal(actual.concept_id, actual.name)} in concept set")
+            else:
+                concepts[concept_id].descendants = entry.descendants
+                selected[concept_id] = concepts[concept_id]
+        print(f"  Restricted to {len(selected)} of {len(concepts)} concepts")
+        concepts = selected
 
     for included in include:
         concept_id = included.concept_id
@@ -160,15 +176,17 @@ def prepare():
     outputs = []
     for mapping in configuration.mappings:
         priorities = []
+        only = []
         match mapping:
             case ConceptSetMapping(concept_sets=concept_set_names):
                 generation_requests = resolve_concept_set_names(context, concept_set_names)
                 priorities = mapping.priorities
+                only = mapping.only
             case CategoryMapping(category=category, subcategory=subcategory):
                 generation_requests = resolve_categories(context, category, subcategory)
             case _:
                 raise RuntimeError("Unreachable")
-        outputs.append(compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities))
+        outputs.append(compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities, only))
 
     return configuration, outputs
 
@@ -210,14 +228,16 @@ def generate_markdown(output_directory):
             if isinstance(mapping, CategoryMapping):
                 generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
                 priorities = []
+                only = []
             else:
                 generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
                 priorities = mapping.priorities
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities)
+                only = mapping.only
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities, only)
         elif name in cs_name_to_mapping:
             mapping = cs_name_to_mapping[name]
             generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude, mapping.priorities)
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude, mapping.priorities, mapping.only)
         else:
             generation_request = resolve_concept_set_name(context, name)
             return compute_output(context, [generation_request], [], [])

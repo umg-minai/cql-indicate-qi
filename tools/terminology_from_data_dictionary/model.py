@@ -13,6 +13,12 @@ class OMOPConceptReference(BaseModel):
     descendants: bool = Field(default=False)
 
 
+class PriorityEntry(BaseModel):
+    concept_id: int
+    name: str
+    priority: int
+
+
 class Mapping(BaseModel, ABC):
     name: str
     cql_definition: Optional[str] = None
@@ -23,6 +29,7 @@ class Mapping(BaseModel, ABC):
 
 class ConceptSetMapping(Mapping):
     concept_sets: List[str]
+    priorities: List[PriorityEntry] = Field(default=[])
 
 
 class CategoryMapping(Mapping):
@@ -64,6 +71,9 @@ class ConceptOutput:
     concept_id: int
     name: str
     descendants: bool = False
+    vocabulary: str = ""
+    concept_code: str = ""
+    priority: Optional[int] = None
 
 
 @dataclass

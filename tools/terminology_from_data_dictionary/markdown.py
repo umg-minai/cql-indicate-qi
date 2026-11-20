@@ -30,8 +30,14 @@ def format_concept_set_for_markdown(concept_set_id: int, concept_set_name: str, 
     return f"{link} v{concept_set_version}"
 
 
+def concept_sort_key(concept):
+    # Concepts with a priority come first, in priority order; the rest by name.
+    has_priority = concept.priority is not None
+    return (not has_priority, concept.priority if has_priority else 0, concept.name.lower())
+
+
 def format_markdown_table(outputs: List[Output]):
-    header = ["Concept ID", "Concept Name", "Descendants", "DD Concept Set"]
+    header = ["Priority", "Concept ID", "Descendants", "Vocabulary", "Concept Name", "Concept Code", "DD Concept Set"]
     rows = []
     widths = [0] * len(header)
 
@@ -46,7 +52,7 @@ def format_markdown_table(outputs: List[Output]):
     add_row(*header)
     for i, output in enumerate(outputs):
         add_row()
-        for concept in sorted(output.concepts, key=lambda x: x.name.lower()):
+        for concept in sorted(output.concepts, key=concept_sort_key):
             concept_set = concept.concept_set
             if concept_set:
                 concept_set_cell = format_concept_set_for_markdown(concept_set.concept_set_id,
@@ -55,9 +61,12 @@ def format_markdown_table(outputs: List[Output]):
                                                                    max_width=40)
             else:
                 concept_set_cell = "Added by UMG"
-            add_row(format_concept_id_for_markdown(concept.concept_id),
-                    naive_markdown_escape(maybe_truncate(concept.name, max_length=40)),
+            add_row(concept.priority if concept.priority is not None else "",
+                    format_concept_id_for_markdown(concept.concept_id),
                     "yes" if concept.descendants else "no",
+                    concept.vocabulary,
+                    naive_markdown_escape(maybe_truncate(concept.name, max_length=40)),
+                    concept.concept_code,
                     concept_set_cell)
 
     lines = []

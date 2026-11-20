@@ -41,3 +41,32 @@ mappings:
     exclude:
       - concept_id: 1032192
         name:       "Decision authority documented"
+
+  - name:         PaO2Measurements
+    concept_sets: ["Oxygen partial pressure in arterial blood"]
+    priorities:
+      - concept_id: 3027801
+        name:       "Oxygen [Partial pressure] in Arterial blood"
+        priority:   1
+      - concept_id: 3022803
+        name:       "Oxygen [Partial pressure] adjusted to patient's actual temperature in Arterial blood"
+        priority:   2
+
+  # Concept set "Tidal volume (Vt)" which indicates measurements with
+  # unit mL.  Don't include "Tidal volume per body weight (Vt/kg)"
+  # since that concept set uses the unit mL/kg.
+  - name:         TidalVolumeMeasurements
+    concept_sets: ["Tidal volume (Vt)"]
+    priorities:
+      - concept_id: 44782826
+        name:       "Inspiratory tidal volume"
+        priority:   1
+      - concept_id: 4108448
+        name:       "Spontaneous tidal volume"
+        priority:   2
+      - concept_id: 3012410
+        name:       "Tidal volume setting Ventilator"
+        priority:   3
+      - concept_id: 4029625
+        name:       "Tidal volume"
+        priority:   4

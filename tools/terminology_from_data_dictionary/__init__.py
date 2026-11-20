@@ -1,13 +1,13 @@
 import pathlib
 import re
-from dataclasses import dataclass
-from typing import Dict, List
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 import yaml
 
 from data_dictionary import load_concept_sets, load_resolved_concept_sets
 from terminology_from_data_dictionary.model import Configuration, ConceptSetMapping, CategoryMapping, \
-    OMOPConceptReference, Output, ConceptOutput, ConceptSetInfo
+    OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
 from terminology_from_data_dictionary.cql import write_cql_library
 from terminology_from_data_dictionary.markdown import update_markdown_files
 from utilities import format_concept_for_terminal
@@ -19,12 +19,27 @@ class Context:
     resolved_concept_sets: Dict[int, Dict]
     repository_url: str
     commit: str
+    # concept_id -> (vocabulary, concept code); used for concepts added via "include"
+    concept_details: Dict[int, tuple] = field(init=False, default_factory=dict)
+
+    def __post_init__(self):
+        for concept_set in self.concept_sets.values():
+            for item in concept_set.get("expression", {}).get("items", []):
+                concept = item.get("concept", {})
+                self.concept_details[concept.get("conceptId")] = (concept.get("vocabularyId", ""),
+                                                                  concept.get("conceptCode", ""))
+        for resolved in self.resolved_concept_sets.values():
+            for concept in resolved.get("resolvedConcepts", []):
+                self.concept_details.setdefault(concept.get("conceptId"),
+                                                (concept.get("vocabularyId", ""),
+                                                 concept.get("conceptCode", "")))
 
 
 def compute_output(context: Context,
                    concept_sets: List[ConceptSetInfo],
                    include: List[OMOPConceptReference],
-                   exclude: List[OMOPConceptReference]):
+                   exclude: List[OMOPConceptReference],
+                   priorities: Optional[List[PriorityEntry]] = None):
     concepts: Dict[int, ConceptOutput] = dict()
     use_expressions = True
     if exclude:
@@ -47,7 +62,9 @@ def compute_output(context: Context,
                 concept_id = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
                 include_descendants = item.get("includeDescendants")
-                concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, include_descendants)
+                concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, include_descendants,
+                                                     concept.get("vocabularyId", ""),
+                                                     concept.get("conceptCode", ""))
     else:
         print("  Using resolved concept set because of exclusions")
         for request in concept_sets:
@@ -55,7 +72,9 @@ def compute_output(context: Context,
             for resolved_concept in resolved_concepts:
                 concept_id = resolved_concept.get("conceptId")
                 concept_name = resolved_concept.get("conceptName")
-                concepts[concept_id] = ConceptOutput(request, concept_id, concept_name)
+                concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, False,
+                                                     resolved_concept.get("vocabularyId", ""),
+                                                     resolved_concept.get("conceptCode", ""))
 
     for included in include:
         concept_id = included.concept_id
@@ -63,7 +82,9 @@ def compute_output(context: Context,
             raise RuntimeError(f"Explicitly included concept {format_concept_for_terminal(concept_id, included.name)} is present in concept set(s)")
         else:
             print(f"  Including additional concept {format_concept_for_terminal(concept_id, included.name)}")
-            concepts[concept_id] = ConceptOutput(None, concept_id, included.name, included.descendants)
+            vocabulary, concept_code = context.concept_details.get(concept_id, ("", ""))
+            concepts[concept_id] = ConceptOutput(None, concept_id, included.name, included.descendants,
+                                                 vocabulary, concept_code)
     for excluded in exclude:
         if excluded.descendants:
             raise RuntimeError(f"Excluding concepts with descendants is not implemented")
@@ -76,6 +97,16 @@ def compute_output(context: Context,
         else:
             print(f"  Excluding concept {format_concept_for_terminal(concept_id, excluded.name)}")
             del concepts[concept_id]
+
+    for entry in (priorities or []):
+        concept_id = entry.concept_id
+        if concept_id not in concepts:
+            raise RuntimeError(f"Priority entry for concept {format_concept_for_terminal(concept_id, entry.name)} is not present in concept set(s)")
+        elif not entry.name == concepts[concept_id].name:
+            actual = concepts[concept_id]
+            raise RuntimeError(f"Name of priority entry {format_concept_for_terminal(concept_id, entry.name)} does not match name of {format_concept_for_terminal(actual.concept_id, actual.name)} in concept set")
+        else:
+            concepts[concept_id].priority = entry.priority
 
     return Output(concept_sets,
                   list(sorted(concepts.values(), key=lambda x: x.name)),
@@ -128,14 +159,16 @@ def prepare():
 
     outputs = []
     for mapping in configuration.mappings:
+        priorities = []
         match mapping:
             case ConceptSetMapping(concept_sets=concept_set_names):
                 generation_requests = resolve_concept_set_names(context, concept_set_names)
+                priorities = mapping.priorities
             case CategoryMapping(category=category, subcategory=subcategory):
                 generation_requests = resolve_categories(context, category, subcategory)
             case _:
                 raise RuntimeError("Unreachable")
-        outputs.append(compute_output(context, generation_requests, mapping.include, mapping.exclude))
+        outputs.append(compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities))
 
     return configuration, outputs
 
@@ -163,8 +196,7 @@ def generate_markdown(output_directory):
     # Lookup by config name (e.g. "InsulinDrugs", "AnticoagulationDrugs")
     config_mappings = {mapping.name: mapping for mapping in configuration.mappings}
 
-    # Reverse lookup: data dictionary concept set name -> mapping (for exception entries)
-    # e.g. "Consultation with patient" -> ConsultationWithPatient mapping
+    # Reverse lookup: data dictionary concept set name -> mapping (exceptions and priorities)
     cs_name_to_mapping = {}
     for mapping in configuration.mappings:
         if isinstance(mapping, ConceptSetMapping):
@@ -174,21 +206,19 @@ def generate_markdown(output_directory):
     def resolve_name(name: str) -> Output:
         name = name.strip()
         if name in config_mappings:
-            # Matches by config name (e.g. "AnticoagulationDrugs")
             mapping = config_mappings[name]
             if isinstance(mapping, CategoryMapping):
                 generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
+                priorities = []
             else:
                 generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+                priorities = mapping.priorities
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities)
         elif name in cs_name_to_mapping:
-            # Matches by data dictionary name with exceptions
-            # e.g. "Consultation with patient" applies ConsultationWithPatient exceptions
             mapping = cs_name_to_mapping[name]
             generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude, mapping.priorities)
         else:
-            # Look up directly by name, no exceptions
             generation_request = resolve_concept_set_name(context, name)
             return compute_output(context, [generation_request], [], [])
 

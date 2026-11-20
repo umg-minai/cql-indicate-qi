@@ -33,15 +33,6 @@ mappings:
       - concept_id: 4247376
         name:       "Discussion about care plan with family"
 
-  - name:         DecisionAuthorityDocumented
-    concept_sets: ["[Deprecated] Decision authority documented"]
-    include:
-      - concept_id: 45877806
-        name:       "Decision authority documented"
-    exclude:
-      - concept_id: 1032192
-        name:       "Decision authority documented"
-
   - name:         PaO2Measurements
     concept_sets: ["Oxygen partial pressure in arterial blood"]
     priorities:

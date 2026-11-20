@@ -67,3 +67,27 @@ mappings:
     only:
       - concept_id: 3036277
         name:       "Body height"
+
+  - name:         MobilizationProcedures
+    concept_sets: ["Mobilization"]
+
+  - name:         IdealBodyWeight
+    concept_sets: ["Ideal body weight"]
+
+  - name:         PEEPMeasurements
+    concept_sets: ["Applied Positive End-Expiratory Pressure (PEEP)"]
+
+  - name:         Extubation
+    concept_sets: ["Extubation"]
+
+  - name:         EndotrachealTube
+    concept_sets: ["Endotracheal tube"]
+
+  - name:         InvasiveMechanicalVentilation
+    concept_sets: ["Invasive mechanical ventilation"]
+
+  - name:         TrialOfSpontaneousBreathing
+    concept_sets: ["Trial of spontaneous breathing"]
+
+  - name:         RenalReplacementTherapyProcedures
+    concept_sets: ["Renal replacement therapy (RRT)"]

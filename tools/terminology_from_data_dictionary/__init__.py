@@ -178,8 +178,8 @@ def prepare():
         priorities = []
         only = []
         match mapping:
-            case ConceptSetMapping(concept_sets=concept_set_names):
-                generation_requests = resolve_concept_set_names(context, concept_set_names)
+            case ConceptSetMapping():
+                generation_requests = [resolve_concept_set_name(context, mapping.name)]
                 priorities = mapping.priorities
                 only = mapping.only
             case CategoryMapping(category=category, subcategory=subcategory):
@@ -211,35 +211,21 @@ def generate_markdown(output_directory):
     assert commit == commit2
     context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
 
-    # Lookup by config name (e.g. "InsulinDrugs", "AnticoagulationDrugs")
+    # Config entries are looked up by name: the data dictionary concept set name,
+    # or the label of a category entry (e.g. "AnticoagulationDrugs").
     config_mappings = {mapping.name: mapping for mapping in configuration.mappings}
-
-    # Reverse lookup: data dictionary concept set name -> mapping (exceptions and priorities)
-    cs_name_to_mapping = {}
-    for mapping in configuration.mappings:
-        if isinstance(mapping, ConceptSetMapping):
-            for cs_name in mapping.concept_sets:
-                cs_name_to_mapping[cs_name] = mapping
 
     def resolve_name(name: str) -> Output:
         name = name.strip()
-        if name in config_mappings:
-            mapping = config_mappings[name]
-            if isinstance(mapping, CategoryMapping):
-                generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
-                priorities = []
-                only = []
-            else:
-                generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
-                priorities = mapping.priorities
-                only = mapping.only
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude, priorities, only)
-        elif name in cs_name_to_mapping:
-            mapping = cs_name_to_mapping[name]
-            generation_requests = resolve_concept_set_names(context, mapping.concept_sets)
-            return compute_output(context, generation_requests, mapping.include, mapping.exclude, mapping.priorities, mapping.only)
-        else:
-            generation_request = resolve_concept_set_name(context, name)
-            return compute_output(context, [generation_request], [], [])
+        mapping = config_mappings.get(name)
+        if mapping is None:
+            # No exceptions configured: use the concept set as it is
+            return compute_output(context, [resolve_concept_set_name(context, name)], [], [])
+        if isinstance(mapping, CategoryMapping):
+            generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
+            return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+        generation_requests = [resolve_concept_set_name(context, name)]
+        return compute_output(context, generation_requests, mapping.include, mapping.exclude,
+                              mapping.priorities, mapping.only)
 
     update_markdown_files(resolve_name, output_directory)

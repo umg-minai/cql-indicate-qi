@@ -2,7 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # Configuration
@@ -20,6 +20,9 @@ class PriorityEntry(BaseModel):
 
 
 class Mapping(BaseModel, ABC):
+    model_config = ConfigDict(extra="forbid")
+    # Concept set entries: the exact name of the concept set in the data dictionary.
+    # Category entries: a label that can be used in inject comments.
     name: str
     cql_definition: Optional[str] = None
     # TODO: allow include/exclude with descendants
@@ -28,7 +31,6 @@ class Mapping(BaseModel, ABC):
 
 
 class ConceptSetMapping(Mapping):
-    concept_sets: List[str]
     priorities: List[PriorityEntry] = Field(default=[])
     # If given, only these concepts of the concept set(s) are used
     only: List[OMOPConceptReference] = Field(default=[])

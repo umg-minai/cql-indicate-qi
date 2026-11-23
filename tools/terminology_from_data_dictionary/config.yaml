@@ -1,4 +1,11 @@
+# Exceptions to the concept sets of the data dictionary.
+#
+# Concept sets are referenced by their exact name in indicate-eu/data-dictionary,
+# for example <!-- inject:Body height|Tidal volume (Vt) --> in a markdown file.
+# An entry is only needed if a concept set has exceptions
+# (include, exclude, only, priorities).
 mappings:
+  # Category entries: all concept sets of a category (the name is just a label)
   - name:        InsulinDrugs
     category:    Medications
     subcategory: "Other drugs"
@@ -7,8 +14,7 @@ mappings:
     category:    Medications
     subcategory: "Anticoagulants"
 
-  - name:         GlucoseMeasurements
-    concept_sets: ["Glucose in blood"]
+  - name:         "Glucose in blood"
     exclude:
       - concept_id: 40757626
         name:       "Glucose [Moles/volume] in Serum or Plasma --post dialysis"
@@ -17,8 +23,7 @@ mappings:
       - concept_id: 46236950
         name:       "Fasting glucose [Moles/volume] in Serum, Plasma or Blood"
 
-  - name:         PhosphateMeasurements
-    concept_sets: ["Phosphate in blood"]
+  - name:         "Phosphate in blood"
     exclude:
       - concept_id: 3050450
         name:       "Phosphate [Mass/volume] in Serum or Plasma --post dialysis"
@@ -27,14 +32,12 @@ mappings:
       - concept_id: 40759093
         name:       "Phosphate [Moles/volume] in Serum or Plasma --post dialysis"
 
-  - name:         ConsultationWithPatient
-    concept_sets: ["Consultation with patient"]
+  - name:         "Consultation with patient"
     include:
       - concept_id: 4247376
         name:       "Discussion about care plan with family"
 
-  - name:         PaO2Measurements
-    concept_sets: ["Oxygen partial pressure in arterial blood"]
+  - name:         "Oxygen partial pressure in arterial blood"
     priorities:
       - concept_id: 3027801
         name:       "Oxygen [Partial pressure] in Arterial blood"
@@ -43,11 +46,9 @@ mappings:
         name:       "Oxygen [Partial pressure] adjusted to patient's actual temperature in Arterial blood"
         priority:   2
 
-  # Concept set "Tidal volume (Vt)" which indicates measurements with
-  # unit mL.  Don't include "Tidal volume per body weight (Vt/kg)"
-  # since that concept set uses the unit mL/kg.
-  - name:         TidalVolumeMeasurements
-    concept_sets: ["Tidal volume (Vt)"]
+  # "Tidal volume (Vt)" is measured in mL. "Tidal volume per body weight (Vt/kg)"
+  # is a different concept set (unit mL/kg) and is not used here.
+  - name:         "Tidal volume (Vt)"
     priorities:
       - concept_id: 44782826
         name:       "Inspiratory tidal volume"
@@ -62,32 +63,7 @@ mappings:
         name:       "Tidal volume"
         priority:   4
 
-  - name:         BodyHeight
-    concept_sets: ["Body height"]
+  - name:         "Body height"
     only:
       - concept_id: 3036277
         name:       "Body height"
-
-  - name:         MobilizationProcedures
-    concept_sets: ["Mobilization"]
-
-  - name:         IdealBodyWeight
-    concept_sets: ["Ideal body weight"]
-
-  - name:         PEEPMeasurements
-    concept_sets: ["Applied Positive End-Expiratory Pressure (PEEP)"]
-
-  - name:         Extubation
-    concept_sets: ["Extubation"]
-
-  - name:         EndotrachealTube
-    concept_sets: ["Endotracheal tube"]
-
-  - name:         InvasiveMechanicalVentilation
-    concept_sets: ["Invasive mechanical ventilation"]
-
-  - name:         TrialOfSpontaneousBreathing
-    concept_sets: ["Trial of spontaneous breathing"]
-
-  - name:         RenalReplacementTherapyProcedures
-    concept_sets: ["Renal replacement therapy (RRT)"]

@@ -9,7 +9,7 @@ from data_dictionary import load_concept_sets, load_resolved_concept_sets
 from terminology_from_data_dictionary.model import Configuration, ConceptSetMapping, CategoryMapping, \
     OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
 from terminology_from_data_dictionary.cql import write_cql_library
-from terminology_from_data_dictionary.markdown import update_markdown_files
+from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key
 from terminology_from_data_dictionary.project import load_project_concept_sets
 from utilities import format_concept_for_terminal
 
@@ -246,3 +246,51 @@ def print_project_concept_sets(project_id):
     for entry in entries:
         groups[entry.group] = groups.get(entry.group, 0) + 1
     print("Groups: " + ", ".join(f"{name} ({count})" for name, count in groups.items()))
+
+
+def generate_concept_set_list(output_file, project_id=5):
+    """Write the concept sets of a project, with the rules from config.yaml applied, to a yaml file."""
+    with open(CONFIG_FILE) as file:
+        configuration = Configuration.model_validate(yaml.safe_load(file))
+
+    concept_sets, repository_url, commit = load_concept_sets()
+    resolved_concept_sets, _, _ = load_resolved_concept_sets()
+    context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
+    entries = load_project_concept_sets(project_id, concept_sets, resolved_concept_sets)
+
+    config_mappings = {mapping.name: mapping for mapping in configuration.mappings
+                       if isinstance(mapping, ConceptSetMapping)}
+    unknown = sorted(set(config_mappings) - {entry.info.name for entry in entries})
+    if unknown:
+        raise RuntimeError(f"config.yaml has entries for concept sets that are not in project {project_id}: "
+                           + ", ".join(unknown))
+
+    result = []
+    for entry in entries:
+        info = entry.info
+        mapping = config_mappings.get(info.name)
+        if mapping:
+            print(f"Concept set {info.name}")
+            output = compute_output(context, [info], mapping.include, mapping.exclude,
+                                    mapping.priorities, mapping.only)
+        else:
+            output = compute_output(context, [info], [], [])
+        concepts = []
+        for concept in sorted(output.concepts, key=concept_sort_key):
+            item = {"concept_id": concept.concept_id,
+                    "name": concept.name,
+                    "with_descendant": bool(concept.descendants)}
+            if concept.priority is not None:
+                item["priority"] = concept.priority
+            concepts.append(item)
+        result.append({"name": info.name,
+                       "concept_set_id": info.concept_set_id,
+                       "version": entry.version,
+                       "group": entry.group,
+                       "concepts": concepts})
+
+    header = (f"# Concept sets of project {project_id} with the rules of config.yaml applied.\n"
+              f"# Generated from {repository_url} at commit {commit}.\n"
+              f"# Do not edit.\n")
+    output_file.write_text(header + yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=200))
+    print(f"Wrote {len(result)} concept sets with {sum(len(e['concepts']) for e in result)} concepts to {output_file}")

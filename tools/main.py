@@ -27,5 +27,10 @@ def update_project():
     update_project_implementation.update()
 
 
+@app.command()
+def project_concept_sets(project_id: int = 5):
+    terminology_from_data_dictionary.print_project_concept_sets(project_id)
+
+
 if __name__ == "__main__":
     app()

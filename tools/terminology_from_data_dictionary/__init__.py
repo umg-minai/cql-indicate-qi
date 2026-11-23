@@ -10,6 +10,7 @@ from terminology_from_data_dictionary.model import Configuration, ConceptSetMapp
     OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
 from terminology_from_data_dictionary.cql import write_cql_library
 from terminology_from_data_dictionary.markdown import update_markdown_files
+from terminology_from_data_dictionary.project import load_project_concept_sets
 from utilities import format_concept_for_terminal
 
 
@@ -229,3 +230,19 @@ def generate_markdown(output_directory):
                               mapping.priorities, mapping.only)
 
     update_markdown_files(resolve_name, output_directory)
+
+
+def print_project_concept_sets(project_id):
+    concept_sets, repository_url, commit = load_concept_sets()
+    resolved_concept_sets, _, _ = load_resolved_concept_sets()
+    entries = load_project_concept_sets(project_id, concept_sets, resolved_concept_sets)
+    print(f"Project {project_id}: {len(entries)} concept sets (data dictionary commit {commit[:7]})")
+    for entry in entries:
+        info = entry.info
+        note = "  <- loaded from an older commit" if entry.from_history else ""
+        print(f"  {entry.group:<20} {info.concept_set_id:>4} {info.name[:50]:<50} "
+              f"v{entry.version:<7} {len(info.resolved_concepts):>3} concepts{note}")
+    groups = {}
+    for entry in entries:
+        groups[entry.group] = groups.get(entry.group, 0) + 1
+    print("Groups: " + ", ".join(f"{name} ({count})" for name, count in groups.items()))

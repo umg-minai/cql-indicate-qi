@@ -34,9 +34,14 @@ code "Gender Male":   '8507' from OMOPSV
 
 // Drug exposure types
 
-code "EHR order":                 '32833' from OMOPSV
+code "EHR order":        '32833' from OMOPSV
+code "EHR prescription": '32838' from OMOPSV
 // One of the alternative concepts that is not used at the moment.
 // code "EHR administration record": '32818' from OMOPSV
+concept "EHR order or prescription": {
+  "EHR order",
+  "EHR prescription"
+}
 
 //
 

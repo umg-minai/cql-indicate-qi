@@ -97,11 +97,11 @@ define "Insulin Exposures":
   // that represent actual administration, we blocklist the one concept we know
   // is used for ordered exposures.
         ([DrugExposure: InsulinDrugs."Insulin Drugs"] d
-           where     not (d.drugTypeConcept = elm."EHR order")
+           where     not (d.drugTypeConcept ~ elm."EHR order or prescription")
                  and U.CheckDateTimeInterval(d)
            return all d)
   union ([DrugExposure: InsulinIngredients."Insulin Ingredients"] d
-           where     not (d.drugTypeConcept = elm."EHR order")
+           where     not (d.drugTypeConcept ~ elm."EHR order or prescription")
                  and U.CheckDateTimeInterval(d)
            return all d)
 

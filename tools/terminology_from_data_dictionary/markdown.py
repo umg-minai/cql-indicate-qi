@@ -1,7 +1,7 @@
 import glob
 import re
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 from terminology_from_data_dictionary.model import Output
 from utilities import make_concept_set_url, make_athena_url, maybe_truncate
@@ -124,3 +124,14 @@ def update_markdown_files(resolve_name: Callable[[str], Output], markdown_direct
     markdown_files = glob.glob("*.md", root_dir=markdown_directory)
     for markdown_file in sorted(markdown_files):
         update_markdown_file(resolve_name, markdown_directory / markdown_file)
+
+
+def collect_qis(markdown_directory: Path) -> Dict[str, List[str]]:
+    """For every name in an inject comment, return the QIs (taken from the file names) that use it."""
+    result: Dict[str, set] = dict()
+    for markdown_file in sorted(glob.glob("qi[0-9][0-9]-*.md", root_dir=markdown_directory)):
+        qi = "QI" + markdown_file[2:4]
+        for key in re.findall(r"<!-- inject:(.+?) -->", (Path(markdown_directory) / markdown_file).read_text()):
+            for name in key.split("|"):
+                result.setdefault(name.strip(), set()).add(qi)
+    return {name: sorted(qis) for name, qis in result.items()}

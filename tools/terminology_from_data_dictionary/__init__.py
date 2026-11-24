@@ -9,7 +9,7 @@ from data_dictionary import load_concept_sets, load_resolved_concept_sets
 from terminology_from_data_dictionary.model import Configuration, ConceptSetMapping, CategoryMapping, \
     OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
 from terminology_from_data_dictionary.cql import write_cql_library
-from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key
+from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key, collect_qis
 from terminology_from_data_dictionary.project import load_project_concept_sets
 from utilities import format_concept_for_terminal
 
@@ -124,6 +124,8 @@ def compute_output(context: Context,
             raise RuntimeError(f"Name of priority entry {format_concept_for_terminal(concept_id, entry.name)} does not match name of {format_concept_for_terminal(actual.concept_id, actual.name)} in concept set")
         else:
             concepts[concept_id].priority = entry.priority
+            concepts[concept_id].redundancy_group = entry.redundancy_group
+            concepts[concept_id].is_preferred = entry.is_preferred
 
     return Output(concept_sets,
                   list(sorted(concepts.values(), key=lambda x: x.name)),
@@ -248,7 +250,7 @@ def print_project_concept_sets(project_id):
     print("Groups: " + ", ".join(f"{name} ({count})" for name, count in groups.items()))
 
 
-def generate_concept_set_list(output_file, project_id=5):
+def generate_concept_set_list(output_file, project_id=5, definitions_directory=None):
     """Write the concept sets of a project, with the rules from config.yaml applied, to a yaml file."""
     with open(CONFIG_FILE) as file:
         configuration = Configuration.model_validate(yaml.safe_load(file))
@@ -257,6 +259,39 @@ def generate_concept_set_list(output_file, project_id=5):
     resolved_concept_sets, _, _ = load_resolved_concept_sets()
     context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
     entries = load_project_concept_sets(project_id, concept_sets, resolved_concept_sets)
+
+    # domain of every concept, to derive omop_record
+    domain_of = {}
+    for concept_set in concept_sets.values():
+        for item in concept_set["expression"]["items"]:
+            domain_of[item["concept"]["conceptId"]] = item["concept"]["domainId"]
+    for resolved in resolved_concept_sets.values():
+        for concept in resolved["resolvedConcepts"]:
+            domain_of.setdefault(concept["conceptId"], concept["domainId"])
+    omop_records = {"Measurement": "Measurement", "Procedure": "ProcedureOccurrence", "Drug": "DrugExposure",
+                    "Condition": "ConditionOccurrence", "Observation": "Observation", "Device": "DeviceExposure"}
+    included_records = {included.concept_id: included.omop_record
+                        for mapping in configuration.mappings for included in mapping.include
+                        if included.omop_record}
+
+    def omop_record(concept_id):
+        if concept_id in included_records:
+            return included_records[concept_id]
+        domain = domain_of.get(concept_id)
+        if domain not in omop_records:
+            raise RuntimeError(f"No omop_record known for domain {domain} of concept {concept_id}")
+        return omop_records[domain]
+
+    # QIs that use a concept set, taken from the inject comments of the QI documents
+    qis_of = {}
+    if definitions_directory is not None:
+        category_mappings = {m.name: m for m in configuration.mappings if isinstance(m, CategoryMapping)}
+        for inject_name, qis in collect_qis(definitions_directory).items():
+            category = category_mappings.get(inject_name)
+            names = ([r.name for r in resolve_categories(context, category.category, category.subcategory)]
+                     if category else [inject_name])
+            for name in names:
+                qis_of[name] = sorted(set(qis_of.get(name, [])) | set(qis))
 
     config_mappings = {mapping.name: mapping for mapping in configuration.mappings
                        if isinstance(mapping, ConceptSetMapping)}
@@ -279,14 +314,19 @@ def generate_concept_set_list(output_file, project_id=5):
         for concept in sorted(output.concepts, key=concept_sort_key):
             item = {"concept_id": concept.concept_id,
                     "name": concept.name,
+                    "omop_record": omop_record(concept.concept_id),
                     "with_descendants": bool(concept.descendants)}
             if concept.priority is not None:
                 item["priority"] = concept.priority
+            if concept.redundancy_group is not None:
+                item["redundancy_group"] = concept.redundancy_group
+                item["is_preferred"] = concept.is_preferred
             concepts.append(item)
         result.append({"name": info.name,
                        "concept_set_id": info.concept_set_id,
                        "version": entry.version,
-                       "group": entry.group,
+                       "project_group": entry.group,
+                       "qi": qis_of.get(info.name, []),
                        "concepts": concepts})
 
     project_names = {entry.info.name for entry in entries}
@@ -294,9 +334,11 @@ def generate_concept_set_list(output_file, project_id=5):
         if additional.name in project_names:
             raise RuntimeError(f"Additional concept set '{additional.name}' has the same name as a concept set of project {project_id}")
         result.append({"name": additional.name,
-                       "group": "additional",
+                       "project_group": "additional",
+                       "qi": additional.qi,
                        "concepts": [{"concept_id": concept.concept_id,
                                      "name": concept.name,
+                                     "omop_record": additional.omop_record,
                                      "with_descendants": concept.descendants}
                                     for concept in additional.concepts]})
 

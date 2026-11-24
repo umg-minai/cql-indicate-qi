@@ -36,9 +36,10 @@ mappings:
     include:
       - concept_id: 4247376
         name:       "Discussion about care plan with family"
+        omop_record: "Observation"
 
   - name:         "Oxygen partial pressure in arterial blood"
-    priorities:
+    concepts:
       - concept_id: 3027801
         name:       "Oxygen [Partial pressure] in Arterial blood"
         priority:   1
@@ -49,10 +50,12 @@ mappings:
   # "Tidal volume (Vt)" is measured in mL. "Tidal volume per body weight (Vt/kg)"
   # is a different concept set (unit mL/kg) and is not used here.
   - name:         "Tidal volume (Vt)"
-    priorities:
+    concepts:
       - concept_id: 44782826
         name:       "Inspiratory tidal volume"
         priority:   1
+        redundancy_group: "Tidal volume inspired"
+        is_preferred:     false
       - concept_id: 4108448
         name:       "Spontaneous tidal volume"
         priority:   2
@@ -62,6 +65,100 @@ mappings:
       - concept_id: 4029625
         name:       "Tidal volume"
         priority:   4
+      - concept_id: 36303816
+        name:       "Tidal volume.inspired"
+        redundancy_group: "Tidal volume inspired"
+        is_preferred:     true
+
+  - name:         "Body weight"
+    concepts:
+      - concept_id:       3025315
+        name:             "Body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3013762
+        name:             "Body weight Measured"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3013853
+        name:             "Body weight Measured --ante partum"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3009617
+        name:             "Body weight Measured --post dialysis"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3010147
+        name:             "Body weight Measured --post partum"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3015644
+        name:             "Body weight Measured --postoperative"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3019336
+        name:             "Body weight Measured --pre dialysis"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3005422
+        name:             "Body weight Measured --preoperative"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       40761330
+        name:             "Body weight Measured --when specimen taken"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3010220
+        name:             "Body weight Measured --with clothes"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       3011054
+        name:             "Body weight Measured --without clothes"
+        redundancy_group: "Body weight"
+        is_preferred:     true
+      - concept_id:       4099154
+        name:             "Body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       4178502
+        name:             "Body weight measure"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       4310154
+        name:             "Body weight with shoes"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       4175354
+        name:             "Body weight without shoes"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       42536495
+        name:             "Current body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       37160438
+        name:             "Post-amputation measured body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       37160443
+        name:             "Post-dialysis body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+      - concept_id:       37160447
+        name:             "Pre-dialysis body weight"
+        redundancy_group: "Body weight"
+        is_preferred:     false
+
+  - name:         "Ideal body weight"
+    concepts:
+      - concept_id:       3032445
+        name:             "Ideal body weight"
+        redundancy_group: "Ideal Body Weight"
+        is_preferred:     true
+      - concept_id:       4062985
+        name:             "Ideal body weight"
+        redundancy_group: "Ideal Body Weight"
+        is_preferred:     false
 
   - name:         "Body height"
     only:
@@ -72,11 +169,15 @@ mappings:
 # The names are the groups of the harmonizer's omop-concepts.csv.
 additional_concept_sets:
   - name: "Intensive Care Visit"
+    omop_record: "VisitOccurrence | VisitDetail"
+    qi: [ALL]
     concepts:
       - concept_id: 32037
         name:       "Intensive Care"
 
   - name: "IBW sex coefficient"
+    omop_record: "Person.genderConcept"
+    qi: [QI01, QI03]
     concepts:
       - concept_id: 8532
         name:       "Gender Female"
@@ -84,6 +185,8 @@ additional_concept_sets:
         name:       "Gender Male"
 
   - name: "Insulin Ingredients"
+    omop_record: "DrugStrength.ingredientConcept"
+    qi: [QI03]
     concepts:
       - concept_id: 1531601
         name:       "insulin aspart protamine, human"

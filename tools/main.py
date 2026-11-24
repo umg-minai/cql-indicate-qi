@@ -33,8 +33,10 @@ def project_concept_sets(project_id: int = 5):
 
 
 @app.command()
-def generate_concept_set_list(output_file: Path, project_id: int = 5):
-    terminology_from_data_dictionary.generate_concept_set_list(output_file, project_id)
+def generate_concept_set_list(output_file: Path,
+                              project_id: int = 5,
+                              definitions_directory: Path = typer.Option(None, help="Directory with the QI markdown files; used to fill in the qi of each concept set")):
+    terminology_from_data_dictionary.generate_concept_set_list(output_file, project_id, definitions_directory)
 
 
 if __name__ == "__main__":

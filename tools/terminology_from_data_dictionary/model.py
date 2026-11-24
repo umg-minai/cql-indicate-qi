@@ -2,7 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 # Configuration
@@ -10,14 +10,25 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 class OMOPConceptReference(BaseModel):
     concept_id: int
     name: str
+    # only needed for concepts that are in no concept set (no domain known)
+    omop_record: Optional[str] = None
     descendants: bool = Field(default=False,
                               validation_alias=AliasChoices("with_descendants", "descendants"))
 
 
 class PriorityEntry(BaseModel):
+    """Settings of one concept of a concept set."""
     concept_id: int
     name: str
-    priority: int
+    priority: Optional[int] = None
+    redundancy_group: Optional[str] = None
+    is_preferred: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def check_redundancy_fields(self):
+        if (self.redundancy_group is None) != (self.is_preferred is None):
+            raise ValueError(f"Concept {self.concept_id}: redundancy_group and is_preferred must be given together")
+        return self
 
 
 class Mapping(BaseModel, ABC):
@@ -32,7 +43,7 @@ class Mapping(BaseModel, ABC):
 
 
 class ConceptSetMapping(Mapping):
-    priorities: List[PriorityEntry] = Field(default=[])
+    priorities: List[PriorityEntry] = Field(default=[], validation_alias=AliasChoices("concepts", "priorities"))
     # If given, only these concepts of the concept set(s) are used
     only: List[OMOPConceptReference] = Field(default=[])
 
@@ -46,6 +57,8 @@ class AdditionalConceptSet(BaseModel):
     """A set of concepts that is not a concept set of the data dictionary."""
     model_config = ConfigDict(extra="forbid")
     name: str
+    omop_record: str
+    qi: List[str] = Field(default=[])
     concepts: List[OMOPConceptReference]
 
 
@@ -87,6 +100,8 @@ class ConceptOutput:
     vocabulary: str = ""
     concept_code: str = ""
     priority: Optional[int] = None
+    redundancy_group: Optional[str] = None
+    is_preferred: Optional[bool] = None
 
 
 @dataclass

@@ -1,10 +1,21 @@
 import typer
 from pathlib import Path
+import data_dictionary
 import terminology_from_data_dictionary
 import synchronize_terminology
 import update_project as update_project_implementation
 
 app = typer.Typer()
+
+
+@app.callback()
+def main(data_dictionary_repository: str = typer.Option(data_dictionary.DEFAULT_REPOSITORY_URL,
+                                                        envvar="INDICATE_DATA_DICTIONARY_REPOSITORY",
+                                                        help="Git URL of the data dictionary repository"),
+         data_dictionary_branch: str = typer.Option(data_dictionary.DEFAULT_BRANCH,
+                                                    envvar="INDICATE_DATA_DICTIONARY_BRANCH",
+                                                    help="Branch of the data dictionary repository")):
+    data_dictionary.configure(data_dictionary_repository, data_dictionary_branch)
 
 
 @app.command()

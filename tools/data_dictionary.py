@@ -1,13 +1,35 @@
 import xdg.BaseDirectory as BaseDirectory
 import pathlib
+import re
 import subprocess
 import json
 import glob
 
 
-REPOSITORY_URL  = "https://github.com/indicate-eu/data-dictionary"
-CACHE_DIRECTORY = pathlib.Path(BaseDirectory.xdg_cache_home)
-CLONE_DIRECTORY = CACHE_DIRECTORY / 'indicate' / 'data-dictionary'
+# The data dictionary repository and branch that are used. Can be changed with configure(),
+# or on the command line (see main.py). For now the default is the UMG fork, because its branch
+# contains the additional insulin concept sets.
+DEFAULT_REPOSITORY_URL = "https://github.com/umg-minai/data-dictionary"
+DEFAULT_BRANCH         = "umg/insulin-regular-isophane-lispro"
+REPOSITORY_URL         = DEFAULT_REPOSITORY_URL
+BRANCH                 = DEFAULT_BRANCH
+CACHE_DIRECTORY        = pathlib.Path(BaseDirectory.xdg_cache_home)
+
+
+def configure(repository_url=None, branch=None):
+    """Select the data dictionary repository and branch."""
+    global REPOSITORY_URL, BRANCH, data_dictionary_commit
+    if repository_url:
+        REPOSITORY_URL = repository_url
+    if branch:
+        BRANCH = branch
+    data_dictionary_commit = None
+
+
+def clone_directory():
+    """Cache directory of the selected repository and branch (one clone for each combination)."""
+    name = re.sub(r"[^A-Za-z0-9._-]+", "_", f"{REPOSITORY_URL.removeprefix('https://')}__{BRANCH}")
+    return CACHE_DIRECTORY / "indicate" / "data-dictionaries" / name
 
 
 VERSIONS_FILE = "concept_sets_versions.json"
@@ -22,7 +44,7 @@ data_dictionary_commit = None
 def ensure_data_dictionary_clone(timeout=60):
     global data_dictionary_commit
     if data_dictionary_commit:
-        return CLONE_DIRECTORY, data_dictionary_commit
+        return clone_directory(), data_dictionary_commit
     else:
         def run_git(cwd, *args):
             try:
@@ -44,15 +66,15 @@ def ensure_data_dictionary_clone(timeout=60):
                 message = f"Git operation {e.cmd} timed out after {e.timeout} seconds with output\n{output}\n{error}"
                 raise RuntimeError(message) from None
 
-        if not CLONE_DIRECTORY.exists():
-            parent = CLONE_DIRECTORY.parent
-            parent.mkdir(parents=True, exist_ok=True)
-            run_git(parent, 'clone', REPOSITORY_URL)
+        directory = clone_directory()
+        if not directory.exists():
+            directory.parent.mkdir(parents=True, exist_ok=True)
+            run_git(directory.parent, 'clone', '--branch', BRANCH, '--single-branch', REPOSITORY_URL, directory.name)
         else:
-            run_git(CLONE_DIRECTORY, 'pull')
-        output = run_git(CLONE_DIRECTORY, 'rev-parse', 'HEAD')
+            run_git(directory, 'pull')
+        output = run_git(directory, 'rev-parse', 'HEAD')
         data_dictionary_commit = output.strip().decode()
-        return CLONE_DIRECTORY, data_dictionary_commit
+        return directory, data_dictionary_commit
 
 # Concept sets
 

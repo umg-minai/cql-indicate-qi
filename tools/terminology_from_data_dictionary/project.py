@@ -3,7 +3,7 @@ import subprocess
 from dataclasses import dataclass
 from typing import Dict, List
 
-from data_dictionary import CLONE_DIRECTORY, load_project, load_concept_set_versions
+from data_dictionary import clone_directory, load_project, load_concept_set_versions
 from terminology_from_data_dictionary.model import ConceptSetInfo
 
 
@@ -18,7 +18,7 @@ class ProjectConceptSet:
 def read_json_at_commit(path: str, commit: str):
     try:
         process = subprocess.run(["git", "show", f"{commit}:{path}"],
-                                 cwd=CLONE_DIRECTORY,
+                                 cwd=clone_directory(),
                                  capture_output=True,
                                  check=True,
                                  timeout=60)

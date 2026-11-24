@@ -2,7 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 # Configuration
@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class OMOPConceptReference(BaseModel):
     concept_id: int
     name: str
-    descendants: bool = Field(default=False)
+    descendants: bool = Field(default=False,
+                              validation_alias=AliasChoices("with_descendants", "descendants"))
 
 
 class PriorityEntry(BaseModel):
@@ -41,8 +42,16 @@ class CategoryMapping(Mapping):
     subcategory: str
 
 
+class AdditionalConceptSet(BaseModel):
+    """A set of concepts that is not a concept set of the data dictionary."""
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    concepts: List[OMOPConceptReference]
+
+
 class Configuration(BaseModel):
     mappings: List[ConceptSetMapping | CategoryMapping]
+    additional_concept_sets: List[AdditionalConceptSet] = Field(default=[])
 
 
 # Output

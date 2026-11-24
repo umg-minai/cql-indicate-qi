@@ -279,7 +279,7 @@ def generate_concept_set_list(output_file, project_id=5):
         for concept in sorted(output.concepts, key=concept_sort_key):
             item = {"concept_id": concept.concept_id,
                     "name": concept.name,
-                    "with_descendant": bool(concept.descendants)}
+                    "with_descendants": bool(concept.descendants)}
             if concept.priority is not None:
                 item["priority"] = concept.priority
             concepts.append(item)
@@ -288,6 +288,17 @@ def generate_concept_set_list(output_file, project_id=5):
                        "version": entry.version,
                        "group": entry.group,
                        "concepts": concepts})
+
+    project_names = {entry.info.name for entry in entries}
+    for additional in configuration.additional_concept_sets:
+        if additional.name in project_names:
+            raise RuntimeError(f"Additional concept set '{additional.name}' has the same name as a concept set of project {project_id}")
+        result.append({"name": additional.name,
+                       "group": "additional",
+                       "concepts": [{"concept_id": concept.concept_id,
+                                     "name": concept.name,
+                                     "with_descendants": concept.descendants}
+                                    for concept in additional.concepts]})
 
     header = (f"# Concept sets of project {project_id} with the rules of config.yaml applied.\n"
               f"# Generated from {repository_url} at commit {commit}.\n"

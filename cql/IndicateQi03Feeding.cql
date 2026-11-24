@@ -537,27 +537,31 @@ define "Debug Results":
             // Period"(p) is null, result is also null and then the results
             // property of the accumulator is left unchanged so the period
             // not counted as "good".
-            let target: "Calorie Target for 24-hour Period"(
-                          r.previousTarget,
-                          r.previousPeriod,
-                          p,
-                          r.dayOfVisit
-                        ),
-                insulin: "Total Insulin Rate in Period"(p),
-                actual: "Calorie Intake in Period"(p),
-                result: if target is null then
-                          false
-                        else
-                          0.9 * target <= actual and actual <= 1.1 * target,
-                entry:  {
-                          period: p,
-                          values: {
-                                    (convert insulin to '[IU]/h').value as Decimal,
-                                    (convert target to 'kcal/d').value  as Decimal,
-                                    (convert actual to 'kcal/d').value  as Decimal,
-                                    if result then 1.0 else 0.0
-                                  } as List<Decimal>
-                        }
+            let target:          "Calorie Target for 24-hour Period"(
+                                   r.previousTarget,
+                                   r.previousPeriod,
+                                   p,
+                                   r.dayOfVisit
+                                 ),
+                insulin:         "Total Insulin Rate in Period"(p),
+                actual:          "Calorie Intake in Period"(p),
+                result:          if target is null then
+                                   false
+                                 else
+                                   0.9 * target <= actual and actual <= 1.1 * target,
+                bodyMassIndex:   elm."Body Mass Index Before"(end of p),
+                "co2Production": "Median CO2 Production Rate in Period"(p),
+                entry:           {
+                                   period: p,
+                                   values: {
+                                             (convert insulin to '[IU]/h').value          as Decimal,
+                                             (convert target to 'kcal/d').value           as Decimal,
+                                             (convert actual to 'kcal/d').value           as Decimal,
+                                             if result then 1.0 else 0.0,
+                                             (convert bodyMassIndex to 'kg/m2').value     as Decimal,
+                                             (convert "co2Production" to 'ml/min').value  as Decimal
+                                           } as List<Decimal>
+                                 }
               return {
                        previousPeriod: p,
                        previousTarget: target,

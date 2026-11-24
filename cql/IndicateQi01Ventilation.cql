@@ -529,6 +529,8 @@ define "Debug Results":
           let measurementsInPeriod:        (measurementsInVisit) m
                                              where m in p
                                              return all m,
+              peepTimes:                   (measurementsInPeriod) m
+                                             return all convert m to DateTime,
               peepQuantity:                Median(
                                              (measurementsInPeriod) m
                                                return all convert m to Quantity
@@ -539,9 +541,8 @@ define "Debug Results":
                                                return all m
                                            ),
               tidalVolumeLocf:             Median(
-                                             (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
-                                                 return all "Tidal Volume LOCF"(peepTime)
+                                             (peepTimes) t
+                                               return all "Tidal Volume LOCF"(t)
                                            ),
               plateauPressure:             Median(
                                              "Plateau Pressure Measurements" m
@@ -549,19 +550,19 @@ define "Debug Results":
                                                return all m
                                            ),
               plateauPressureLocf:         Median(
-                                             (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
-                                                 return all "Effective Plateau Pressure"(peepTime)
+                                             (peepTimes) t
+                                               return all "Effective Plateau Pressure"(t)
                                            ),
               pressureDifference:          Median(
                                              (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
+                                               let peepQuantity:    convert m to Quantity,
+                                                   peepTime:        convert m to DateTime,
+                                                   plateauPressure: "Effective Plateau Pressure"(peepTime)
                                                  return all plateauPressure - peepQuantity
                                            ),
               recommendedPEEP:             Median(
-                                             (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
-                                                 return all "Recommended PEEP for PaO2"(peepTime)
+                                             (peepTimes) t
+                                               return all "Recommended PEEP for PaO2"(t)
                                            ),
               ventilationProcedureCount:   Count(
                                              "Ventilation Procedures" o
@@ -580,9 +581,8 @@ define "Debug Results":
                                                return all m
                                            ),
               paO2Locf:                    Median(
-                                             (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
-                                                 return all "PaO2 LOCF"(peepTime)
+                                             (peepTimes) t
+                                               return all "PaO2 LOCF"(t)
                                            ),
               fiO2:                        Median(
                                              "FiO2 Measurements" m
@@ -590,9 +590,8 @@ define "Debug Results":
                                                return all m
                                            ),
               fiO2Locf:                    Median(
-                                             (measurementsInPeriod) m
-                                               let peepTime: convert m to DateTime
-                                                 return all "FiO2 LOCF"(peepTime)
+                                             (peepTimes) t
+                                               return all "FiO2 LOCF"(t)
                                            )
           return all {
                        period: p,

@@ -41,7 +41,10 @@ def compute_output(context: Context,
                    include: List[OMOPConceptReference],
                    exclude: List[OMOPConceptReference],
                    priorities: Optional[List[PriorityEntry]] = None,
-                   only: Optional[List[OMOPConceptReference]] = None):
+                   only: Optional[List[OMOPConceptReference]] = None,
+                   no_classification: bool = False):
+    """If no_classification is set, classification concepts (standardConcept C) are left out,
+    because they cannot be mapping targets."""
     concepts: Dict[int, ConceptOutput] = dict()
     use_expressions = True
     if exclude or only:
@@ -56,11 +59,20 @@ def compute_output(context: Context,
                     use_expressions = False
                     break
 
+    if use_expressions and no_classification:
+        for request in concept_sets:
+            for item in request.expression:
+                if item.get("concept", {}).get("standardConcept") == "C" and item.get("includeDescendants"):
+                    print("  Using resolved concept set because of a classification concept with descendants")
+                    use_expressions = False
+
     if use_expressions:
         for request in concept_sets:
             items = request.expression
             for item in items:
                 concept = item.get("concept")
+                if no_classification and concept.get("standardConcept") == "C":
+                    continue
                 concept_id = concept.get("conceptId")
                 concept_name = concept.get("conceptName")
                 include_descendants = item.get("includeDescendants")
@@ -72,6 +84,8 @@ def compute_output(context: Context,
         for request in concept_sets:
             resolved_concepts = request.resolved_concepts
             for resolved_concept in resolved_concepts:
+                if no_classification and resolved_concept.get("standardConcept") == "C":
+                    continue
                 concept_id = resolved_concept.get("conceptId")
                 concept_name = resolved_concept.get("conceptName")
                 concepts[concept_id] = ConceptOutput(request, concept_id, concept_name, False,
@@ -307,9 +321,9 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
         if mapping:
             print(f"Concept set {info.name}")
             output = compute_output(context, [info], mapping.include, mapping.exclude,
-                                    mapping.priorities, mapping.only)
+                                    mapping.priorities, mapping.only, no_classification=True)
         else:
-            output = compute_output(context, [info], [], [])
+            output = compute_output(context, [info], [], [], no_classification=True)
         concepts = []
         for concept in sorted(output.concepts, key=concept_sort_key):
             item = {"concept_id": concept.concept_id,

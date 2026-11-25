@@ -11,6 +11,7 @@ from terminology_from_data_dictionary.model import Configuration, ConceptSetMapp
 from terminology_from_data_dictionary.cql import write_cql_library
 from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key, collect_qis
 from terminology_from_data_dictionary.project import load_project_concept_sets
+from provenance import generation_stamp
 from utilities import format_concept_for_terminal
 
 
@@ -357,7 +358,7 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
                                     for concept in additional.concepts]})
 
     header = (f"# Concept sets of project {project_id} with the rules of config.yaml applied.\n"
-              f"# Generated from {repository_url} at commit {commit}.\n"
-              f"# Do not edit.\n")
+              + "".join(f"# {line}\n" for line in generation_stamp())
+              + "# Do not edit.\n")
     output_file.write_text(header + yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=200))
     print(f"Wrote {len(result)} concept sets with {sum(len(e['concepts']) for e in result)} concepts to {output_file}")

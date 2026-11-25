@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from provenance import generation_stamp
 from terminology_from_data_dictionary.model import Output
 
 
@@ -14,10 +15,10 @@ def write_cql_library_to_file(output: Output, filename, library_name, concept_de
         concept_set_modification_date = concept_set.concept_set.get("modifiedDate")
         concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} direct entries) [modified {concept_set_modification_date}]\n"
 
+    stamp = "".join(f"// {line}\n" for line in generation_stamp())
     with open(filename, 'w') as file:
-        file.write(f"""// This file has been generated automatically from
-// commit {output.commit} of
-// {output.repository_url}
+        file.write(f"""// This file has been generated automatically
+{stamp}//
 {concept_sets_comments}
 // Do not edit
 

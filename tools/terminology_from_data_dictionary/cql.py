@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from provenance import generation_stamp
@@ -47,3 +48,27 @@ concept "{concept_definition_name}": {{
 def write_cql_library(output: Output, cql_directory: Path, library_name: str, concept_definition_name):
     filename = cql_directory /  f"{library_name}.cql"
     write_cql_library_to_file(output, filename, library_name, concept_definition_name)
+
+
+def cql_library_name(concept_set_name: str) -> str:
+    """Turn a concept set name into a name for a CQL library and its file.
+
+    Everything that is not a letter or a digit (spaces, commas, brackets, ...) is removed and every
+    word starts with a capital letter, for example "Glucose in blood" becomes "GlucoseInBlood"."""
+    concept_set_name = re.sub(r"['’]", "", concept_set_name)  # "A's" becomes "As", not "A S"
+    words = re.findall(r"[A-Za-z0-9]+", concept_set_name)
+    name = "".join(word[0].upper() + word[1:] for word in words)
+    if not name:
+        raise RuntimeError(f"Cannot make a CQL library name from the concept set name '{concept_set_name}'")
+    return name
+
+
+def check_cql_library_names(concept_set_names):
+    """Return a dict from library name to concept set name. Raise an error if two concept sets would get the same library name."""
+    names = dict()
+    for concept_set_name in concept_set_names:
+        library_name = cql_library_name(concept_set_name)
+        if library_name in names and names[library_name] != concept_set_name:
+            raise RuntimeError(f"The concept sets '{names[library_name]}' and '{concept_set_name}' both give the CQL library name {library_name}")
+        names[library_name] = concept_set_name
+    return names

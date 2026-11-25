@@ -23,7 +23,8 @@ def tool_version():
     commit = _git(TOOLS_DIRECTORY, "rev-parse", "HEAD")
     if commit is None:
         return "unknown (not a git checkout)"
-    if _git(TOOLS_DIRECTORY, "status", "--porcelain", "--untracked-files=no"):
+    # Only the tool itself counts: the generated files in the other folders of the repository must not.
+    if _git(TOOLS_DIRECTORY, "status", "--porcelain", "--untracked-files=no", "--", "."):
         commit += " (with uncommitted changes)"
     return commit
 

@@ -9,7 +9,8 @@ def write_cql_library_to_file(output: Output, filename, library_name, concept_de
     """Writes drug concepts to a CQL file."""
     print(f"Writing {len(output.concept_sets)} concept sets to {filename}")
     concept_sets_sorted = sorted(output.concept_sets, key=lambda x: x.name)
-    concept_sets_comments = "// Concept set(s)\n"
+    concept_sets_comments = ("// Concept set(s)\n" if output.concept_sets
+                             else "// Custom concept set defined in config.yaml\n")
     for concept_set in concept_sets_sorted:
         concept_set_name = concept_set.name
         concept_set_size = len(concept_set.expression)

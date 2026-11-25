@@ -188,7 +188,23 @@ additional_concept_sets:
     omop_record: "DrugStrength.ingredientConcept"
     qi: [QI03]
     concepts:
+      - concept_id: 1567198
+        name:       "insulin aspart, human"
       - concept_id: 1531601
         name:       "insulin aspart protamine, human"
+      - concept_id: 35602717
+        name:       "insulin degludec"
+      - concept_id: 1516976
+        name:       "insulin detemir"
+      - concept_id: 1502905
+        name:       "insulin glargine"
+      - concept_id: 1544838
+        name:       "insulin glulisine, human"
+      - concept_id: 1596977
+        name:       "insulin, regular, human"
+      - concept_id: 46221581
+        name:       "insulin isophane"
       - concept_id: 19090244
         name:       "insulin, prompt zinc, beef"
+      - concept_id: 1550023
+        name:       "insulin lispro"

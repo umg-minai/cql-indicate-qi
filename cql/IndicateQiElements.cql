@@ -27,6 +27,24 @@ codesystem "OMOPSV Hierarchy": 'https://fhir-terminology.ohdsi.org?hierarchical'
 
 code "Intensive Care": '32037' from OMOPSV
 
+// Gender
+
+code "Gender Female": '8532' from OMOPSV
+code "Gender Male":   '8507' from OMOPSV
+
+// Drug exposure types
+
+code "EHR order":        '32833' from OMOPSV
+code "EHR prescription": '32838' from OMOPSV
+// One of the alternative concepts that is not used at the moment.
+// code "EHR administration record": '32818' from OMOPSV
+concept "EHR order or prescription": {
+  "EHR order",
+  "EHR prescription"
+}
+
+//
+
 code "Intubation Tube": '4097216' from "OMOPSV Hierarchy"
 
 code "Body Height": '3036277' from OMOPSV
@@ -40,9 +58,6 @@ concept "Ideal body weight": {
   "Ideal body weight (SNOMED)",
   "Ideal body weight (LOINC)"
 }
-
-code "Gender Female": '8532' from OMOPSV
-code "Gender Male":   '8507' from OMOPSV
 
 define function "Ideal Body Weight for Height"(Height Quantity, Gender Code):
   // The Devine formula is applicable to adults of at least 152.4 cm

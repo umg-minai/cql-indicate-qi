@@ -37,6 +37,19 @@ mappings:
       - concept_id: 4247376
         name:       "Discussion about care plan with family"
         omop_record: "Observation"
+    concepts:
+      - concept_id:       37164964
+        name:             "Consultation with patient"
+        redundancy_group: "Consultation with patient"
+        is_preferred:     true
+      - concept_id:       37168078
+        name:             "Face to face consultation with patient"
+        redundancy_group: "Consultation with patient"
+        is_preferred:     false
+      - concept_id:       4089048
+        name:             "New patient consultation"
+        redundancy_group: "Consultation with patient"
+        is_preferred:     false
 
   - name:         "Oxygen partial pressure in arterial blood"
     concepts:
@@ -76,76 +89,8 @@ mappings:
         name:             "Body weight"
         redundancy_group: "Body weight"
         is_preferred:     true
-      - concept_id:       3013762
-        name:             "Body weight Measured"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3013853
-        name:             "Body weight Measured --ante partum"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3009617
-        name:             "Body weight Measured --post dialysis"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3010147
-        name:             "Body weight Measured --post partum"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3015644
-        name:             "Body weight Measured --postoperative"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3019336
-        name:             "Body weight Measured --pre dialysis"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3005422
-        name:             "Body weight Measured --preoperative"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       40761330
-        name:             "Body weight Measured --when specimen taken"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3010220
-        name:             "Body weight Measured --with clothes"
-        redundancy_group: "Body weight"
-        is_preferred:     true
-      - concept_id:       3011054
-        name:             "Body weight Measured --without clothes"
-        redundancy_group: "Body weight"
-        is_preferred:     true
       - concept_id:       4099154
         name:             "Body weight"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       4178502
-        name:             "Body weight measure"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       4310154
-        name:             "Body weight with shoes"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       4175354
-        name:             "Body weight without shoes"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       42536495
-        name:             "Current body weight"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       37160438
-        name:             "Post-amputation measured body weight"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       37160443
-        name:             "Post-dialysis body weight"
-        redundancy_group: "Body weight"
-        is_preferred:     false
-      - concept_id:       37160447
-        name:             "Pre-dialysis body weight"
         redundancy_group: "Body weight"
         is_preferred:     false
 
@@ -158,6 +103,28 @@ mappings:
       - concept_id:       4062985
         name:             "Ideal body weight"
         redundancy_group: "Ideal Body Weight"
+        is_preferred:     false
+
+  - name:         "Heparin"
+    concepts:
+      - concept_id:       1367571
+        name:             "heparin"
+        redundancy_group: "Heparin"
+        is_preferred:     true
+      - concept_id:       35884360
+        name:             "Heparin Sodium"
+        redundancy_group: "Heparin"
+        is_preferred:     false
+
+  - name:         "Plateau pressure (Pplat)"
+    concepts:
+      - concept_id:       36304439
+        name:             "Pressure.plateau Respiratory system airway"
+        redundancy_group: "Plateau pressure"
+        is_preferred:     true
+      - concept_id:       44782825
+        name:             "Airway plateau pressure"
+        redundancy_group: "Plateau pressure"
         is_preferred:     false
 
   - name:         "Body height"

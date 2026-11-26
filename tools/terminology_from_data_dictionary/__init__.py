@@ -60,6 +60,11 @@ def compute_output(context: Context,
                     use_expressions = False
                     break
 
+    if use_expressions and priorities:
+        expression_ids = {item["concept"]["conceptId"] for request in concept_sets for item in request.expression}
+        if any(entry.concept_id not in expression_ids for entry in priorities):
+            use_expressions = False
+
     if use_expressions and no_classification:
         for request in concept_sets:
             for item in request.expression:
@@ -141,6 +146,16 @@ def compute_output(context: Context,
             concepts[concept_id].priority = entry.priority
             concepts[concept_id].redundancy_group = entry.redundancy_group
             concepts[concept_id].is_preferred = entry.is_preferred
+
+    groups = dict()
+    for concept in concepts.values():
+        if concept.redundancy_group is not None:
+            groups.setdefault(concept.redundancy_group, []).append(concept)
+    for group_name, members in groups.items():
+        preferred = [member for member in members if member.is_preferred]
+        if len(members) < 2 or len(preferred) != 1:
+            raise RuntimeError(f"Redundancy group '{group_name}' needs at least two concepts and exactly one preferred concept, "
+                               f"found {len(members)} concepts and {len(preferred)} preferred")
 
     return Output(concept_sets,
                   list(sorted(concepts.values(), key=lambda x: x.name)),

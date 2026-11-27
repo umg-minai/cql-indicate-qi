@@ -124,3 +124,4 @@ def update_markdown_files(resolve_name: Callable[[str], Output], markdown_direct
     markdown_files = glob.glob("*.md", root_dir=markdown_directory)
     for markdown_file in sorted(markdown_files):
         update_markdown_file(resolve_name, markdown_directory / markdown_file)
+

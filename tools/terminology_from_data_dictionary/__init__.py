@@ -8,7 +8,7 @@ import yaml
 from data_dictionary import load_concept_sets, load_resolved_concept_sets
 from terminology_from_data_dictionary.model import Configuration, ConceptSetMapping, CategoryMapping, \
     OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
-from terminology_from_data_dictionary.cql import write_cql_library, cql_library_name
+from terminology_from_data_dictionary.cql import write_cql_library, cql_library_name, check_cql_library_names
 from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key, collect_qis
 from terminology_from_data_dictionary.project import load_project_concept_sets
 from provenance import generation_stamp
@@ -226,13 +226,18 @@ def prepare():
 
 def generate_cql(output_directory):
     configuration, outputs = prepare()
+    # every library is named by cql_library_name; two concept sets must not give the same name
+    check_cql_library_names([mapping.name for mapping in configuration.mappings
+                             if not (isinstance(mapping, ConceptSetMapping) and not mapping.cql)]
+                            + [additional.name for additional in configuration.additional_concept_sets])
+
     for output, mapping in zip(outputs, configuration.mappings):
         if isinstance(mapping, ConceptSetMapping) and not mapping.cql:
             continue  # only settings for the concept set list
         cql_definition = mapping.cql_definition
         if cql_definition is None:
             cql_definition = ' '.join(re.split("(?<=[a-z])(?=[A-Z])", mapping.name))
-        write_cql_library(output, output_directory, mapping.name, cql_definition)
+        write_cql_library(output, output_directory, cql_library_name(mapping.name), cql_definition)
 
     # Concept sets that are defined in config.yaml and are not in the data dictionary
     for additional in configuration.additional_concept_sets:

@@ -6,6 +6,18 @@ from provenance import generation_stamp
 from terminology_from_data_dictionary.model import Output
 
 
+def unique_code_names(concepts):
+    """The names of the codes of a library. Two codes must not have the same name, so a code whose name
+    is already taken gets its concept id appended."""
+    names = []
+    for concept in concepts:
+        name = concept.name
+        if name in names:
+            name = f"{concept.name} {concept.concept_id}"
+        names.append(name)
+    return names
+
+
 def write_cql_library_to_file(output: Output, filename, library_name, concept_definition_name,
                               concepts_define=None):
     """Writes drug concepts to a CQL file."""
@@ -33,15 +45,15 @@ library "{library_name}"
 
 """)
         # Write individual codes
-        sorted_concepts = sorted(output.concepts, key=lambda x: x.name.lower())
-        max_length = max( len(concept_output.name) for concept_output in sorted_concepts )
-        for concept_output in sorted_concepts:
-            padded_name = f'"{concept_output.name}":' + ' '*(max_length - len(concept_output.name))
+        sorted_concepts = sorted(output.concepts, key=lambda x: (x.name.lower(), x.concept_id))
+        names = unique_code_names(sorted_concepts)
+        max_length = max(len(name) for name in names)
+        for concept_output, name in zip(sorted_concepts, names):
+            padded_name = f'"{name}":' + ' ' * (max_length - len(name))
             system = 'E."OMOPSV Hierarchy"' if concept_output.descendants else 'E.OMOPSV'
             file.write(f"code {padded_name} '{concept_output.concept_id}' from {system}\n")
         # Write concept
-        concept_lines =  ',\n  '.join( f'"{concept_output.name}"'
-                                       for concept_output in sorted_concepts )
+        concept_lines = ',\n  '.join(f'"{name}"' for name in names)
         file.write(f"""
 concept "{concept_definition_name}": {{
   {concept_lines}

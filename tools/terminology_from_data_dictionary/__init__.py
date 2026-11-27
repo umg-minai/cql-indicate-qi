@@ -224,28 +224,51 @@ def prepare():
     return configuration, outputs
 
 
-def generate_cql(output_directory):
+def generate_cql(output_directory, project_id=5):
+    """Write a CQL library for every concept set of a project, unless config.yaml says cql: false for it.
+    Also for every category in config.yaml and for every additional concept set."""
     configuration, outputs = prepare()
-    # every library is named by cql_library_name; two concept sets must not give the same name
-    check_cql_library_names([mapping.name for mapping in configuration.mappings
-                             if not (isinstance(mapping, ConceptSetMapping) and not mapping.cql)]
-                            + [additional.name for additional in configuration.additional_concept_sets])
+    concept_sets, repository_url, commit = load_concept_sets()
+    resolved_concept_sets, _, _ = load_resolved_concept_sets()
+    context = Context(concept_sets, resolved_concept_sets, repository_url, commit)
+    entries = load_project_concept_sets(project_id, concept_sets, resolved_concept_sets)
 
+    config_mappings = {mapping.name: mapping for mapping in configuration.mappings
+                       if isinstance(mapping, ConceptSetMapping)}
+    project_names = {entry.info.name for entry in entries}
+    for name in config_mappings:
+        if name not in project_names:
+            raise RuntimeError(f"config.yaml has an entry for '{name}', which is not a concept set of project {project_id}")
+
+    def definition_name(name, explicit=None):
+        return explicit or " ".join(re.split("(?<=[a-z])(?=[A-Z])", name))
+
+    libraries = []  # library name, name of the concept in the library, output, definition of the concepts
     for output, mapping in zip(outputs, configuration.mappings):
-        if isinstance(mapping, ConceptSetMapping) and not mapping.cql:
-            continue  # only settings for the concept set list
-        cql_definition = mapping.cql_definition
-        if cql_definition is None:
-            cql_definition = ' '.join(re.split("(?<=[a-z])(?=[A-Z])", mapping.name))
-        write_cql_library(output, output_directory, cql_library_name(mapping.name), cql_definition)
-
+        if isinstance(mapping, CategoryMapping):
+            libraries.append((mapping.name, definition_name(mapping.name, mapping.cql_definition), output, None))
+    for entry in entries:
+        mapping = config_mappings.get(entry.info.name)
+        if mapping is not None and not mapping.cql:
+            continue
+        if mapping is None:
+            output = compute_output(context, [entry.info], [], [])
+        else:
+            output = compute_output(context, [entry.info], mapping.include, mapping.exclude,
+                                    mapping.priorities, mapping.only)
+        libraries.append((entry.info.name, definition_name(entry.info.name, mapping.cql_definition if mapping else None),
+                          output, None))
     # Concept sets that are defined in config.yaml and are not in the data dictionary
     for additional in configuration.additional_concept_sets:
         concepts = [ConceptOutput(None, concept.concept_id, concept.name, concept.descendants)
                     for concept in additional.concepts]
-        output = Output([], concepts, outputs[0].repository_url, outputs[0].commit)
-        write_cql_library(output, output_directory, cql_library_name(additional.name), additional.name,
-                          additional.concepts_define)
+        libraries.append((additional.name, additional.name, Output([], concepts, repository_url, commit),
+                          additional.concepts_define))
+
+    # every library is named by cql_library_name; two concept sets must not give the same name
+    check_cql_library_names([name for name, _, _, _ in libraries])
+    for name, definition, output, concepts_define in libraries:
+        write_cql_library(output, output_directory, cql_library_name(name), definition, concepts_define)
 
 
 def generate_markdown(output_directory):

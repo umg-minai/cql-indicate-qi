@@ -3,6 +3,7 @@
 Run from the tools directory: python3 test_cql.py (or with pytest).
 """
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -73,6 +74,17 @@ def test_a_library_can_have_a_definition_that_lists_its_concepts_as_omop_concept
 def test_a_library_has_no_such_definition_unless_asked_for():
     text = _library_text(None)
     assert "OMOPFunctions" not in text and "\ndefine " not in text
+
+
+def test_codes_with_the_same_name_get_different_names():
+    cql.generation_stamp = lambda: ["stamp"]
+    output = Output([], [ConceptOutput(None, 4099154, "Body weight", False),
+                         ConceptOutput(None, 3025315, "Body weight", False)], "url", "commit")
+    with tempfile.TemporaryDirectory() as directory:
+        cql.write_cql_library(output, Path(directory), "BodyWeight", "Body weight")
+        text = (Path(directory) / "BodyWeight.cql").read_text()
+    assert re.findall(r'^code "([^"]+)":', text, re.M) == ["Body weight", "Body weight 4099154"]
+    assert '  "Body weight",\n  "Body weight 4099154"' in text
 
 
 if __name__ == "__main__":

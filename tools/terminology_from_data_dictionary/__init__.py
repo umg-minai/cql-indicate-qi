@@ -9,8 +9,9 @@ from data_dictionary import load_concept_sets, load_resolved_concept_sets
 from terminology_from_data_dictionary.model import Configuration, ConceptSetMapping, CategoryMapping, \
     OMOPConceptReference, PriorityEntry, Output, ConceptOutput, ConceptSetInfo
 from terminology_from_data_dictionary.cql import write_cql_library, cql_library_name, check_cql_library_names
-from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key, collect_qis
+from terminology_from_data_dictionary.markdown import update_markdown_files, concept_sort_key
 from terminology_from_data_dictionary.project import load_project_concept_sets
+import cql as cql_on_omop
 from provenance import generation_info
 from utilities import format_concept_for_terminal
 
@@ -321,7 +322,7 @@ def print_project_concept_sets(project_id):
     print("Groups: " + ", ".join(f"{name} ({count})" for name, count in groups.items()))
 
 
-def generate_concept_set_list(output_file, project_id=5, definitions_directory=None):
+def generate_concept_set_list(output_file, project_id=5, cql_directory="../cql", jar=cql_on_omop.JAR_FILENAME):
     """Write the concept sets of a project, with the rules from config.yaml applied, to a yaml file."""
     with open(CONFIG_FILE) as file:
         configuration = Configuration.model_validate(yaml.safe_load(file))
@@ -353,16 +354,11 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
             raise RuntimeError(f"No omop_record known for domain {domain} of concept {concept_id}")
         return omop_records[domain]
 
-    # QIs that use a concept set, taken from the inject comments of the QI documents
-    qis_of = {}
-    if definitions_directory is not None:
-        category_mappings = {m.name: m for m in configuration.mappings if isinstance(m, CategoryMapping)}
-        for inject_name, qis in collect_qis(definitions_directory).items():
-            category = category_mappings.get(inject_name)
-            names = ([r.name for r in resolve_categories(context, category.category, category.subcategory)]
-                     if category else [inject_name])
-            for name in names:
-                qis_of[name] = sorted(set(qis_of.get(name, [])) | set(qis))
+    # The QIs that use a concept: the QI libraries that cql-on-omop names in usingLibraries
+    qi_of_concept = cql_on_omop.qi_of_concepts(cql_on_omop.retrieve_qi_usage(cql_directory, jar))
+
+    def qis_of(concept_ids):
+        return sorted(set().union(*(qi_of_concept.get(concept_id, set()) for concept_id in concept_ids)))
 
     config_mappings = {mapping.name: mapping for mapping in configuration.mappings
                        if isinstance(mapping, ConceptSetMapping)}
@@ -396,11 +392,16 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
                 item["redundancy_group"] = concept.redundancy_group
                 item["is_preferred"] = concept.is_preferred
             concepts.append(item)
+        ids = {item["concept_id"] for item in concepts}
+        if any(item["with_descendants"] for item in concepts):
+            resolved = resolved_concept_sets.get(info.concept_set_id)
+            if resolved:
+                ids |= {concept["conceptId"] for concept in resolved["resolvedConcepts"]}
         result.append({"name": info.name,
                        "concept_set_id": info.concept_set_id,
                        "version": entry.version,
                        "project_group": entry.group,
-                       "qi": qis_of.get(info.name, []),
+                       "qi": qis_of(ids),
                        "concepts": concepts})
 
     project_names = {entry.info.name for entry in entries}
@@ -409,7 +410,7 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
             raise RuntimeError(f"Additional concept set '{additional.name}' has the same name as a concept set of project {project_id}")
         result.append({"name": additional.name,
                        "project_group": "additional",
-                       "qi": additional.qi,
+                       "qi": qis_of({concept.concept_id for concept in additional.concepts}),
                        "concepts": [{"concept_id": concept.concept_id,
                                      "name": concept.name,
                                      "omop_record": additional.omop_record,

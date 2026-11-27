@@ -46,8 +46,9 @@ def project_concept_sets(project_id: int = 5):
 @app.command()
 def generate_concept_set_list(output_file: Path,
                               project_id: int = 5,
-                              definitions_directory: Path = typer.Option(None, help="Directory with the QI markdown files; used to fill in the qi of each concept set")):
-    terminology_from_data_dictionary.generate_concept_set_list(output_file, project_id, definitions_directory)
+                              cql_directory: Path = typer.Option("../cql", help="Directory with the CQL libraries; cql-on-omop finds out which QI uses a concept"),
+                              jar: Path = typer.Option("cql-on-omop.jar", help="cql-on-omop 1.1.16 or newer")):
+    terminology_from_data_dictionary.generate_concept_set_list(output_file, project_id, cql_directory, jar)
 
 
 if __name__ == "__main__":

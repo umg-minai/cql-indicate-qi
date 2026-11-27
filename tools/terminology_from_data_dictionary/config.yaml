@@ -171,7 +171,6 @@ mappings:
 additional_concept_sets:
   - name: "Intensive Care Visit"
     omop_record: "VisitOccurrence | VisitDetail"
-    qi: [ALL]
     concepts:
       - concept_id: 32037
         name:       "Intensive Care"
@@ -179,7 +178,6 @@ additional_concept_sets:
 
   - name: "IBW sex coefficient"
     omop_record: "Person.genderConcept"
-    qi: [QI01, QI03]
     concepts:
       - concept_id: 8532
         name:       "Gender Female"
@@ -191,7 +189,6 @@ additional_concept_sets:
   # These ingredients are also in the insulin drug sets on purpose: the CQL needs both, the markdown shows only the drugs.
   - name: "Insulin Ingredients"
     omop_record: "DrugStrength.ingredientConcept"
-    qi: [QI03]
     concepts_define: "Insulin Ingredient Concepts"
     concepts:
       - concept_id: 1567198

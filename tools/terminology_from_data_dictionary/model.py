@@ -70,7 +70,6 @@ class AdditionalConceptSet(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str
     omop_record: str
-    qi: List[str] = Field(default=[])
     # If given, the CQL library also has a definition of this name that lists the concepts of the
     # set as OMOP concepts (the QI code needs that for the ingredients of the insulin drugs)
     concepts_define: Optional[str] = None

@@ -225,7 +225,7 @@ def prepare():
 
 
 def generate_cql(output_directory, project_id=5):
-    """Write a CQL library for every concept set of a project, unless config.yaml says cql: false for it.
+    """Write a CQL library for every concept set of a project, unless config.yaml says cql: false or used: false for it.
     Also for every category in config.yaml and for every additional concept set."""
     configuration, outputs = prepare()
     concept_sets, repository_url, commit = load_concept_sets()
@@ -249,7 +249,7 @@ def generate_cql(output_directory, project_id=5):
             libraries.append((mapping.name, definition_name(mapping.name, mapping.cql_definition), output, None))
     for entry in entries:
         mapping = config_mappings.get(entry.info.name)
-        if mapping is not None and not mapping.cql:
+        if mapping is not None and not (mapping.cql and mapping.used):
             continue
         if mapping is None:
             output = compute_output(context, [entry.info], [], [])
@@ -296,6 +296,8 @@ def generate_markdown(output_directory):
         if isinstance(mapping, CategoryMapping):
             generation_requests = resolve_categories(context, mapping.category, mapping.subcategory)
             return compute_output(context, generation_requests, mapping.include, mapping.exclude)
+        if not mapping.used:
+            raise RuntimeError(f"A markdown file injects the concept set '{name}', but config.yaml says used: false for it")
         generation_requests = [resolve_concept_set_name(context, name)]
         return compute_output(context, generation_requests, mapping.include, mapping.exclude,
                               mapping.priorities, mapping.only)
@@ -373,6 +375,9 @@ def generate_concept_set_list(output_file, project_id=5, definitions_directory=N
     for entry in entries:
         info = entry.info
         mapping = config_mappings.get(info.name)
+        if mapping and not mapping.used:
+            print(f"Concept set {info.name} is not used")
+            continue
         if mapping:
             print(f"Concept set {info.name}")
             output = compute_output(context, [info], mapping.include, mapping.exclude,

@@ -3,7 +3,7 @@
 # Concept sets are referenced by their exact name in indicate-eu/data-dictionary,
 # for example <!-- inject:Body height|Tidal volume (Vt) --> in a markdown file.
 # An entry is only needed if a concept set has exceptions
-# (include, exclude, only, priorities).
+# (include, exclude, only, priorities), or if the QIs do not use it (used: false).
 mappings:
   # Category entries: all concept sets of a category (the name is just a label)
   - name:        InsulinDrugs
@@ -133,6 +133,38 @@ mappings:
     only:
       - concept_id: 3036277
         name:       "Body height"
+
+  # PEEP (indicate-qi-definitions#29): QI01 uses total and applied PEEP without the dynamic
+  # concepts, and not intrinsic PEEP. The priorities run over both concept sets.
+  - name:         "Total Positive End-Expiratory Pressure (Total PEEP)"
+    exclude:
+      - concept_id: 42528517
+        name:       "Total dynamic PEEP Respiratory system"
+    concepts:
+      - concept_id: 42527140
+        name:       "Total PEEP Respiratory system"
+        priority:   1
+
+  - name:         "Applied Positive End-Expiratory Pressure (PEEP)"
+    exclude:
+      - concept_id: 42528516
+        name:       "Extrinsic dynamic PEEP Respiratory system"
+    concepts:
+      - concept_id: 42528515
+        name:       "Extrinsic PEEP Respiratory system"
+        priority:   2
+      - concept_id: 3016226
+        name:       "PEEP Respiratory system"
+        priority:   3
+      - concept_id: 21490855
+        name:       "PEEP Respiratory system --on ventilator"
+        priority:   4
+      - concept_id: 3022875
+        name:       "Positive end expiratory pressure setting Ventilator"
+        priority:   5
+
+  - name:         "Intrinsic Positive End-Expiratory Pressure (auto-PEEP)"
+    used:         false
 
 # Concepts that are in no concept set of the data dictionary (yet).
 # The names are the groups of the harmonizer's omop-concepts.csv.

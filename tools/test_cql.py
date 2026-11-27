@@ -55,6 +55,16 @@ def test_an_entry_has_a_cql_library_unless_it_says_otherwise():
     assert ConceptSetMapping(name="Heparin", cql=False).cql is False
 
 
+def test_an_entry_can_say_that_its_concept_set_is_not_used():
+    assert ConceptSetMapping(name="Body height").used is True
+    assert ConceptSetMapping(name="Intrinsic PEEP", used=False).used is False
+    try:  # settings for the concepts of a concept set that is not used are a mistake
+        ConceptSetMapping(name="Intrinsic PEEP", used=False, exclude=[{"concept_id": 1, "name": "a"}])
+    except ValueError:
+        return
+    raise AssertionError("used: false with exclude should raise an error")
+
+
 def _library_text(concepts_define):
     cql.generation_stamp = lambda: ["stamp"]
     output = Output([], [ConceptOutput(None, 1, "insulin a", False, vocabulary="RxNorm"),

@@ -50,6 +50,14 @@ class ConceptSetMapping(Mapping):
     only: List[OMOPConceptReference] = Field(default=[])
     # False: generate-cql writes no CQL library for this concept set
     cql: bool = True
+    # False: the QIs do not use this concept set of the project. It is in no output.
+    used: bool = True
+
+    @model_validator(mode="after")
+    def check_unused_has_no_settings(self):
+        if not self.used and (self.include or self.exclude or self.only or self.priorities):
+            raise ValueError(f"Concept set '{self.name}': used: false cannot be combined with settings for its concepts")
+        return self
 
 
 class CategoryMapping(Mapping):

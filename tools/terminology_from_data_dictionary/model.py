@@ -46,6 +46,9 @@ class ConceptSetMapping(Mapping):
     priorities: List[PriorityEntry] = Field(default=[], validation_alias=AliasChoices("concepts", "priorities"))
     # If given, only these concepts of the concept set(s) are used
     only: List[OMOPConceptReference] = Field(default=[])
+    # False: the entry only has settings for the concept set list (twin groups, priorities),
+    # so generate-cql writes no CQL library for it
+    cql: bool = True
 
 
 class CategoryMapping(Mapping):

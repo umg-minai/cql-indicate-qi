@@ -227,6 +227,8 @@ def prepare():
 def generate_cql(output_directory):
     configuration, outputs = prepare()
     for output, mapping in zip(outputs, configuration.mappings):
+        if isinstance(mapping, ConceptSetMapping) and not mapping.cql:
+            continue  # only settings for the concept set list
         cql_definition = mapping.cql_definition
         if cql_definition is None:
             cql_definition = ' '.join(re.split("(?<=[a-z])(?=[A-Z])", mapping.name))

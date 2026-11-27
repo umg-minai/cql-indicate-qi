@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from pathlib import Path
 
 from provenance import generation_stamp
@@ -51,16 +52,49 @@ def write_cql_library(output: Output, cql_directory: Path, library_name: str, co
     write_cql_library_to_file(output, filename, library_name, concept_definition_name)
 
 
+# Symbols that are spelled out in a library name, for example "Driving Pressure (ΔP)" becomes "DrivingPressureDeltaP"
+SYMBOL_NAMES = {"Δ": "Delta", "δ": "Delta", "α": "Alpha", "β": "Beta", "γ": "Gamma", "µ": "Micro", "μ": "Micro"}
+
+_NUMBER_UNITS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
+                 "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"]
+_NUMBER_TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+
+def _number_words(number: int):
+    if number < 20:
+        return _NUMBER_UNITS[number]
+    if number < 100:
+        return _NUMBER_TENS[number // 10] + (_NUMBER_UNITS[number % 10] if number % 10 else "")
+    return None
+
+
 def cql_library_name(concept_set_name: str) -> str:
     """Turn a concept set name into a name for a CQL library and its file.
 
     Everything that is not a letter or a digit (spaces, commas, brackets, ...) is removed and every
-    word starts with a capital letter, for example "Glucose in blood" becomes "GlucoseInBlood"."""
-    concept_set_name = re.sub(r"['’]", "", concept_set_name)  # "A's" becomes "As", not "A S"
-    words = re.findall(r"[A-Za-z0-9]+", concept_set_name)
+    word starts with a capital letter, for example "Glucose in blood" becomes "GlucoseInBlood".
+    Symbols such as "Δ" are spelled out ("Delta") and accents are dropped. Any other letter that is not
+    ASCII is an error, so that the name has to be chosen explicitly. A library name must not start
+    with a digit, so a leading number is spelled out: "4 A's Test" becomes "FourAsTest"."""
+    text = "".join(SYMBOL_NAMES.get(character, character) for character in concept_set_name)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(character for character in text if not unicodedata.combining(character))
+    text = re.sub(r"['\u2019]", "", text)  # "A's" becomes "As", not "A S"
+    unknown = sorted({character for character in text if character.isalpha() and not character.isascii()})
+    if unknown:
+        raise RuntimeError(f"The concept set name '{concept_set_name}' has letters that cannot be used in a CQL "
+                           f"library name: {' '.join(unknown)}")
+    words = re.findall(r"[A-Za-z0-9]+", text)
     name = "".join(word[0].upper() + word[1:] for word in words)
     if not name:
         raise RuntimeError(f"Cannot make a CQL library name from the concept set name '{concept_set_name}'")
+    leading_number = re.match(r"\d+", name)
+    if leading_number:
+        spelled = _number_words(int(leading_number.group()))
+        if spelled is None:
+            raise RuntimeError(f"The concept set name '{concept_set_name}' starts with a number that is too large "
+                               "to be spelled out")
+        name = spelled + name[leading_number.end():]
     return name
 
 

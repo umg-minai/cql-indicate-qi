@@ -84,6 +84,7 @@ mappings:
         is_preferred:     true
 
   - name:         "Body weight"
+    cql:          false
     concepts:
       - concept_id:       3025315
         name:             "Body weight"
@@ -106,6 +107,7 @@ mappings:
         is_preferred:     false
 
   - name:         "Heparin"
+    cql:          false
     concepts:
       - concept_id:       1367571
         name:             "heparin"
@@ -117,6 +119,7 @@ mappings:
         is_preferred:     false
 
   - name:         "Plateau pressure (Pplat)"
+    cql:          false
     concepts:
       - concept_id:       36304439
         name:             "Pressure.plateau Respiratory system airway"

@@ -18,24 +18,32 @@ def _git(directory, *args):
         return None
 
 
-def tool_version():
-    """Commit hash of the repository this tool is in, with a note if there are uncommitted changes."""
-    commit = _git(TOOLS_DIRECTORY, "rev-parse", "HEAD")
-    if commit is None:
-        return "unknown (not a git checkout)"
+def generation_info():
+    """How a generated file was made, as data."""
+    directory, commit = data_dictionary.ensure_data_dictionary_clone()
+    tool_commit = _git(TOOLS_DIRECTORY, "rev-parse", "HEAD")
     # Only the tool itself counts: the generated files in the other folders of the repository must not.
-    if _git(TOOLS_DIRECTORY, "status", "--porcelain", "--untracked-files=no", "--", "."):
-        commit += " (with uncommitted changes)"
-    return commit
+    changed = None if tool_commit is None else bool(
+        _git(TOOLS_DIRECTORY, "status", "--porcelain", "--untracked-files=no", "--", "."))
+    return {"tool_version": tool_commit,
+            "tool_uncommitted_changes": changed,
+            "generated_on": datetime.date.today(),
+            "data_dictionary": {"repository": data_dictionary.REPOSITORY_URL,
+                                "branch": data_dictionary.BRANCH,
+                                "commit": commit,
+                                "commit_date": _git(directory, "log", "-1", "--format=%cI", commit) or "unknown"}}
 
 
 def generation_stamp():
-    """Lines that say how a generated file was made."""
-    directory, commit = data_dictionary.ensure_data_dictionary_clone()
-    commit_date = _git(directory, "log", "-1", "--format=%cI", commit) or "unknown"
-    return [f"Tool version:     {tool_version()}",
-            f"Generated on:     {datetime.date.today().isoformat()}",
-            f"Data dictionary:  {data_dictionary.REPOSITORY_URL}",
-            f"  branch:         {data_dictionary.BRANCH}",
-            f"  commit:         {commit}",
-            f"  commit date:    {commit_date}"]
+    """Lines that say how a generated file was made (for the comment at the top of a CQL file)."""
+    info = generation_info()
+    dictionary = info["data_dictionary"]
+    tool = info["tool_version"] or "unknown (not a git checkout)"
+    if info["tool_uncommitted_changes"]:
+        tool += " (with uncommitted changes)"
+    return [f"Tool version:     {tool}",
+            f"Generated on:     {info['generated_on'].isoformat()}",
+            f"Data dictionary:  {dictionary['repository']}",
+            f"  branch:         {dictionary['branch']}",
+            f"  commit:         {dictionary['commit']}",
+            f"  commit date:    {dictionary['commit_date']}"]

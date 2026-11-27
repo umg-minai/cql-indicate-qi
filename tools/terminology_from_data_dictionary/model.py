@@ -12,6 +12,8 @@ class OMOPConceptReference(BaseModel):
     name: str
     # only needed for concepts that are in no concept set (no domain known)
     omop_record: Optional[str] = None
+    # also only needed for concepts that are in no concept set: the vocabulary is part of the code names in CQL
+    vocabulary: Optional[str] = None
     descendants: bool = Field(default=False,
                               validation_alias=AliasChoices("with_descendants", "descendants"))
 

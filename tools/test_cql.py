@@ -57,7 +57,8 @@ def test_an_entry_has_a_cql_library_unless_it_says_otherwise():
 
 def _library_text(concepts_define):
     cql.generation_stamp = lambda: ["stamp"]
-    output = Output([], [ConceptOutput(None, 1, "insulin a", False), ConceptOutput(None, 2, "insulin b", False)],
+    output = Output([], [ConceptOutput(None, 1, "insulin a", False, vocabulary="RxNorm"),
+                         ConceptOutput(None, 2, "insulin b", False, vocabulary="RxNorm")],
                     "url", "commit")
     with tempfile.TemporaryDirectory() as directory:
         cql.write_cql_library(output, Path(directory), "InsulinIngredients", "Insulin Ingredients", concepts_define)
@@ -87,18 +88,21 @@ def _code_names(concepts):
     return codes
 
 
-def test_codes_with_the_same_name_are_told_apart_by_their_vocabulary():
+def test_every_code_name_ends_with_its_vocabulary():
     codes = _code_names([ConceptOutput(None, 4099154, "Body weight", False, vocabulary="SNOMED"),
                          ConceptOutput(None, 3025315, "Body weight", False, vocabulary="LOINC"),
                          ConceptOutput(None, 4178502, "Body weight measure", False, vocabulary="SNOMED")])
-    assert codes == ["Body weight (LOINC)", "Body weight (SNOMED)", "Body weight measure"]
+    assert codes == ["Body weight (LOINC)", "Body weight (SNOMED)", "Body weight measure (SNOMED)"]
 
 
 def test_the_concept_id_is_added_if_the_vocabulary_does_not_tell_them_apart():
     codes = _code_names([ConceptOutput(None, 2, "Pressure", False, vocabulary="LOINC"),
-                         ConceptOutput(None, 1, "Pressure", False, vocabulary="LOINC"),
-                         ConceptOutput(None, 3, "Flow", False), ConceptOutput(None, 4, "Flow", False)])
-    assert codes == ["Flow 3", "Flow 4", "Pressure (LOINC) 1", "Pressure (LOINC) 2"]
+                         ConceptOutput(None, 1, "Pressure", False, vocabulary="LOINC")])
+    assert codes == ["Pressure (LOINC) 1", "Pressure (LOINC) 2"]
+
+
+def test_a_code_needs_a_vocabulary():
+    expect_error(_code_names, [ConceptOutput(None, 3, "Flow", False)])
 
 
 if __name__ == "__main__":

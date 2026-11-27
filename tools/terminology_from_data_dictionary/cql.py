@@ -10,16 +10,15 @@ from terminology_from_data_dictionary.model import Output
 def unique_code_names(concepts):
     """The names of the codes of a library, in the order of ``concepts``.
 
-    Two codes must not have the same name. If a name is used more than once, the vocabulary of the
-    code is appended: "Body weight (LOINC)". If the names are still the same (same vocabulary) or the
-    vocabulary is not known, the concept id is appended as well."""
-    used = Counter(concept.name for concept in concepts)
+    Every code name ends with the vocabulary of the code, for example "Body weight (LOINC)". So a code never
+    has the name of a concept, and codes of the same name from different vocabularies stay apart. If two codes
+    still have the same name (same vocabulary), the concept id is appended."""
     names = []
     for concept in concepts:
-        name = concept.name
-        if used[name] > 1:
-            name = f"{name} ({concept.vocabulary})" if concept.vocabulary else f"{name} {concept.concept_id}"
-        names.append(name)
+        if not concept.vocabulary:
+            raise RuntimeError(f"The vocabulary of the concept {concept.concept_id} '{concept.name}' is not known. "
+                               "Set vocabulary for it in config.yaml.")
+        names.append(f"{concept.name} ({concept.vocabulary})")
     counts = Counter(names)
     return [name if counts[name] == 1 else f"{name} {concept.concept_id}"
             for name, concept in zip(names, concepts)]

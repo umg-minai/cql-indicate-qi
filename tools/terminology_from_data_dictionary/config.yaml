@@ -37,6 +37,7 @@ mappings:
       - concept_id: 4247376
         name:       "Discussion about care plan with family"
         omop_record: "Observation"
+        vocabulary: "SNOMED"
     concepts:
       - concept_id:       37164964
         name:             "Consultation with patient"
@@ -142,6 +143,7 @@ additional_concept_sets:
     concepts:
       - concept_id: 32037
         name:       "Intensive Care"
+        vocabulary: "Visit"
 
   - name: "IBW sex coefficient"
     omop_record: "Person.genderConcept"
@@ -149,8 +151,10 @@ additional_concept_sets:
     concepts:
       - concept_id: 8532
         name:       "Gender Female"
+        vocabulary: "Gender"
       - concept_id: 8507
         name:       "Gender Male"
+        vocabulary: "Gender"
 
   # These ingredients are also in the insulin drug sets on purpose: the CQL needs both, the markdown shows only the drugs.
   - name: "Insulin Ingredients"
@@ -162,6 +166,7 @@ additional_concept_sets:
         name:       "insulin aspart, human"
       - concept_id: 1531601
         name:       "insulin aspart protamine, human"
+        vocabulary: "RxNorm"
       - concept_id: 35602717
         name:       "insulin degludec"
       - concept_id: 1516976
@@ -176,5 +181,6 @@ additional_concept_sets:
         name:       "insulin isophane"
       - concept_id: 19090244
         name:       "insulin, prompt zinc, beef"
+        vocabulary: "RxNorm"
       - concept_id: 1550023
         name:       "insulin lispro"

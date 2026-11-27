@@ -121,7 +121,7 @@ def compute_output(context: Context,
             print(f"  Including additional concept {format_concept_for_terminal(concept_id, included.name)}")
             vocabulary, concept_code = context.concept_details.get(concept_id, ("", ""))
             concepts[concept_id] = ConceptOutput(None, concept_id, included.name, included.descendants,
-                                                 vocabulary, concept_code)
+                                                 vocabulary or included.vocabulary or "", concept_code)
     for excluded in exclude:
         if excluded.descendants:
             raise RuntimeError(f"Excluding concepts with descendants is not implemented")
@@ -260,7 +260,8 @@ def generate_cql(output_directory, project_id=5):
                           output, None))
     # Concept sets that are defined in config.yaml and are not in the data dictionary
     for additional in configuration.additional_concept_sets:
-        concepts = [ConceptOutput(None, concept.concept_id, concept.name, concept.descendants)
+        concepts = [ConceptOutput(None, concept.concept_id, concept.name, concept.descendants,
+                                  concept.vocabulary or context.concept_details.get(concept.concept_id, ("", ""))[0])
                     for concept in additional.concepts]
         libraries.append((additional.name, additional.name, Output([], concepts, repository_url, commit),
                           additional.concepts_define))

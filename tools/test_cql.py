@@ -76,15 +76,29 @@ def test_a_library_has_no_such_definition_unless_asked_for():
     assert "OMOPFunctions" not in text and "\ndefine " not in text
 
 
-def test_codes_with_the_same_name_get_different_names():
+def _code_names(concepts):
     cql.generation_stamp = lambda: ["stamp"]
-    output = Output([], [ConceptOutput(None, 4099154, "Body weight", False),
-                         ConceptOutput(None, 3025315, "Body weight", False)], "url", "commit")
     with tempfile.TemporaryDirectory() as directory:
-        cql.write_cql_library(output, Path(directory), "BodyWeight", "Body weight")
-        text = (Path(directory) / "BodyWeight.cql").read_text()
-    assert re.findall(r'^code "([^"]+)":', text, re.M) == ["Body weight", "Body weight 4099154"]
-    assert '  "Body weight",\n  "Body weight 4099154"' in text
+        cql.write_cql_library(Output([], concepts, "url", "commit"), Path(directory), "Test", "Test")
+        text = (Path(directory) / "Test.cql").read_text()
+    codes = re.findall(r'^code "([^"]+)":', text, re.M)
+    block = re.search(r'^concept "Test": \{\n(.*?)\n\}', text, re.S | re.M).group(1)
+    assert re.findall(r'"([^"]+)"', block) == codes  # the concept lists the same names
+    return codes
+
+
+def test_codes_with_the_same_name_are_told_apart_by_their_vocabulary():
+    codes = _code_names([ConceptOutput(None, 4099154, "Body weight", False, vocabulary="SNOMED"),
+                         ConceptOutput(None, 3025315, "Body weight", False, vocabulary="LOINC"),
+                         ConceptOutput(None, 4178502, "Body weight measure", False, vocabulary="SNOMED")])
+    assert codes == ["Body weight (LOINC)", "Body weight (SNOMED)", "Body weight measure"]
+
+
+def test_the_concept_id_is_added_if_the_vocabulary_does_not_tell_them_apart():
+    codes = _code_names([ConceptOutput(None, 2, "Pressure", False, vocabulary="LOINC"),
+                         ConceptOutput(None, 1, "Pressure", False, vocabulary="LOINC"),
+                         ConceptOutput(None, 3, "Flow", False), ConceptOutput(None, 4, "Flow", False)])
+    assert codes == ["Flow 3", "Flow 4", "Pressure (LOINC) 1", "Pressure (LOINC) 2"]
 
 
 if __name__ == "__main__":

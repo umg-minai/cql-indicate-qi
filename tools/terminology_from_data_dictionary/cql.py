@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from collections import Counter
 from pathlib import Path
 
 from provenance import generation_stamp
@@ -7,15 +8,21 @@ from terminology_from_data_dictionary.model import Output
 
 
 def unique_code_names(concepts):
-    """The names of the codes of a library. Two codes must not have the same name, so a code whose name
-    is already taken gets its concept id appended."""
+    """The names of the codes of a library, in the order of ``concepts``.
+
+    Two codes must not have the same name. If a name is used more than once, the vocabulary of the
+    code is appended: "Body weight (LOINC)". If the names are still the same (same vocabulary) or the
+    vocabulary is not known, the concept id is appended as well."""
+    used = Counter(concept.name for concept in concepts)
     names = []
     for concept in concepts:
         name = concept.name
-        if name in names:
-            name = f"{concept.name} {concept.concept_id}"
+        if used[name] > 1:
+            name = f"{name} ({concept.vocabulary})" if concept.vocabulary else f"{name} {concept.concept_id}"
         names.append(name)
-    return names
+    counts = Counter(names)
+    return [name if counts[name] == 1 else f"{name} {concept.concept_id}"
+            for name, concept in zip(names, concepts)]
 
 
 def write_cql_library_to_file(output: Output, filename, library_name, concept_definition_name,

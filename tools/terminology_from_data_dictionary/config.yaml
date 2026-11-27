@@ -83,6 +83,7 @@ mappings:
         redundancy_group: "Tidal volume inspired"
         is_preferred:     true
 
+  # Twins: only 3025315 (LOINC) and 4099154 (SNOMED); the other Body weight concepts are different measures.
   - name:         "Body weight"
     cql:          false
     concepts:
@@ -154,6 +155,7 @@ additional_concept_sets:
       - concept_id: 8507
         name:       "Gender Male"
 
+  # These ingredients are also in the insulin drug sets on purpose: the CQL needs both, the markdown shows only the drugs.
   - name: "Insulin Ingredients"
     omop_record: "DrugStrength.ingredientConcept"
     qi: [QI03]

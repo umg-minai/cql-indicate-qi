@@ -244,7 +244,8 @@ def generate_cql(output_directory):
         concepts = [ConceptOutput(None, concept.concept_id, concept.name, concept.descendants)
                     for concept in additional.concepts]
         output = Output([], concepts, outputs[0].repository_url, outputs[0].commit)
-        write_cql_library(output, output_directory, cql_library_name(additional.name), additional.name)
+        write_cql_library(output, output_directory, cql_library_name(additional.name), additional.name,
+                          additional.concepts_define)
 
 
 def generate_markdown(output_directory):

@@ -6,7 +6,8 @@ from provenance import generation_stamp
 from terminology_from_data_dictionary.model import Output
 
 
-def write_cql_library_to_file(output: Output, filename, library_name, concept_definition_name):
+def write_cql_library_to_file(output: Output, filename, library_name, concept_definition_name,
+                              concepts_define=None):
     """Writes drug concepts to a CQL file."""
     print(f"Writing {len(output.concept_sets)} concept sets to {filename}")
     concept_sets_sorted = sorted(output.concept_sets, key=lambda x: x.name)
@@ -19,6 +20,7 @@ def write_cql_library_to_file(output: Output, filename, library_name, concept_de
         concept_sets_comments += f"// * {concept_set_name} ({concept_set_size} direct entries) [modified {concept_set_modification_date}]\n"
 
     stamp = "".join(f"// {line}\n" for line in generation_stamp())
+    extra_include = "include OMOPFunctions\n" if concepts_define else ""
     with open(filename, 'w') as file:
         file.write(f"""// This file has been generated automatically
 {stamp}//
@@ -27,7 +29,7 @@ def write_cql_library_to_file(output: Output, filename, library_name, concept_de
 
 library "{library_name}"
 
-include IndicateQiElements called E
+{extra_include}include IndicateQiElements called E
 
 """)
         # Write individual codes
@@ -45,11 +47,17 @@ concept "{concept_definition_name}": {{
   {concept_lines}
 }}
 """)
+        if concepts_define:
+            file.write(f"""
+define "{concepts_define}":
+  ("{concept_definition_name}".codes) c return all OMOPFunctions.ToOMOPConcept(c)
+""")
 
 
-def write_cql_library(output: Output, cql_directory: Path, library_name: str, concept_definition_name):
+def write_cql_library(output: Output, cql_directory: Path, library_name: str, concept_definition_name,
+                      concepts_define=None):
     filename = cql_directory /  f"{library_name}.cql"
-    write_cql_library_to_file(output, filename, library_name, concept_definition_name)
+    write_cql_library_to_file(output, filename, library_name, concept_definition_name, concepts_define)
 
 
 # Symbols that are spelled out in a library name, for example "Driving Pressure (ΔP)" becomes "DrivingPressureDeltaP"

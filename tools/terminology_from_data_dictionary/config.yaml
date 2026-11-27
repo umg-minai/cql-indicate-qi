@@ -159,6 +159,7 @@ additional_concept_sets:
   - name: "Insulin Ingredients"
     omop_record: "DrugStrength.ingredientConcept"
     qi: [QI03]
+    concepts_define: "Insulin Ingredient Concepts"
     concepts:
       - concept_id: 1567198
         name:       "insulin aspart, human"
